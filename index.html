@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MeetSync 智會選 - 互動式會議時間調查系統</title>
+  <title>Time Hunter - 互動式會議時間調查系統</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
     body {
       font-family: 'Inter', 'Noto Sans TC', sans-serif;
       background-color: #f8fafc;
@@ -41,14 +41,16 @@
             <i class="fa-solid fa-calendar-check text-lg"></i>
           </div>
           <div>
-            <span class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-indigo-800">MeetSync</span>
-            <span class="hidden sm:inline-block text-xs px-2 py-0.5 ml-1.5 rounded-full bg-indigo-50 text-indigo-700 font-medium">智會選</span>
+            <span class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-indigo-800">Time Hunter</span>
           </div>
         </a>
       </div>
 
       <!-- 右側按鈕群 -->
       <div id="nav-actions" class="flex items-center gap-2">
+        <button id="nav-btn-history" onclick="openHistoryModal()" class="text-xs sm:text-sm px-3.5 py-2 rounded-lg font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5">
+          <i class="fa-solid fa-clock-rotate-left text-xs"></i> <span>歷史記錄</span>
+        </button>
         <button id="nav-btn-create" onclick="navigateTo('?create=1')" class="text-xs sm:text-sm px-3.5 py-2 rounded-lg font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5">
           <i class="fa-solid fa-plus text-xs"></i> <span>發起新會議</span>
         </button>
@@ -68,8 +70,8 @@
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-600 mb-2">
             <i class="fa-solid fa-sparkles"></i> 3 步驟快速開會
           </div>
-          <h1 class="text-2xl font-bold text-slate-900">發起新的會議時間調查</h1>
-          <p class="text-slate-500 text-sm mt-1">填妥資訊並匯入受邀名單，系統將自動為每位成員產生免登入的專屬填寫連結。</p>
+          <h1 class="text-2xl font-bold text-slate-900">發起新的 Time Hunter 會議時間調查</h1>
+          <p class="text-slate-500 text-sm mt-1">填妥資訊並匯入受邀名單，系統將自動產生單一專屬調查網址供您分享至 LINE/Teams 群組。</p>
         </div>
 
         <form id="form-create-poll" onsubmit="handleCreatePoll(event)" class="space-y-6">
@@ -93,7 +95,7 @@
             </div>
             <div>
               <label class="block text-sm font-semibold text-slate-700 mb-1.5">後台管理密碼 <span class="text-rose-500">*</span></label>
-              <input type="text" id="cp-password" required placeholder="設定進入後台看的密碼 (例：1234)" value="admin" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono">
+              <input type="text" id="cp-password" required placeholder="設定進入後台看的密碼 (預設 09350935)" value="09350935" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono">
             </div>
           </div>
 
@@ -123,7 +125,7 @@
           <!-- 截止時間設定 -->
           <div class="bg-amber-50/70 p-4 rounded-xl border border-amber-200">
             <label class="block text-sm font-semibold text-amber-900 mb-1">調查截止時間 <span class="text-rose-500">*</span></label>
-            <p class="text-xs text-amber-700 mb-2">逾期後前台將自動鎖定，轉為歷史紀錄與發起人決策通知模式。</p>
+            <p class="text-xs text-amber-700 mb-2">逾期後前台將自動轉為唯讀歷史紀錄，並提供即時倒數計時提示填寫人。</p>
             <input type="datetime-local" id="cp-deadline" required class="px-3.5 py-2 rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-medium">
           </div>
 
@@ -131,17 +133,14 @@
           <div>
             <div class="flex items-center justify-between mb-1.5">
               <label class="block text-sm font-semibold text-slate-700">受邀人員名單批次匯入 <span class="text-rose-500">*</span></label>
-              <span class="text-xs text-slate-400">可用「換行」或「逗號」隔開</span>
+              <span class="text-xs text-slate-400">支援輸入「姓名 &lt;Email&gt;」或純姓名</span>
             </div>
-            <textarea id="cp-participants" rows="4" required placeholder="王小明 (前端)&#10;李大華 (後端)&#10;張小芬 (設計)&#10;陳大同 (產品經理)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono"></textarea>
+            <textarea id="cp-participants" rows="4" required placeholder="王小明 (前端) &lt;ming@example.com&gt;&#10;李大華 (後端) &lt;hua@example.com&gt;&#10;張小芬 (設計) &lt;fen@example.com&gt;&#10;陳大同 (產品經理) &lt;tung@example.com&gt;" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono"></textarea>
           </div>
 
           <!-- 送出按鈕 -->
-          <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
-            <button type="button" onclick="loadDemoPollData()" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors">
-              載入示範會議資料
-            </button>
-            <button type="submit" class="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all flex items-center gap-2">
+          <div class="pt-4 flex items-center justify-end border-t border-slate-100">
+            <button type="submit" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all flex items-center justify-center gap-2">
               <i class="fa-solid fa-check"></i> 建立會議並產出邀請網址
             </button>
           </div>
@@ -151,7 +150,7 @@
 
     <!-- 視圖 2: 發起人管理後台 (Admin View) -->
     <section id="view-admin" class="hidden space-y-6">
-      <!-- 後台頂部資訊卡片 -->
+      <!-- 後台頂部資訊卡片 (第二個長方格) -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -172,6 +171,9 @@
 
           <!-- 後台快捷操作 -->
           <div class="flex flex-wrap items-center gap-2">
+            <button onclick="openEditMeetingModal()" class="px-3.5 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5">
+              <i class="fa-solid fa-pen-to-square text-indigo-600"></i> 編輯會議資訊
+            </button>
             <button onclick="openExtendModal()" class="px-3.5 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5">
               <i class="fa-solid fa-stopwatch text-indigo-500"></i> 調整截止時間
             </button>
@@ -185,131 +187,272 @@
         </div>
       </div>
 
-      <!-- 時段熱力統計看板 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3 mb-6">
+      <!-- 瞧瞧大家的回覆 (比照前台呈現方式，支援直接點擊編修與新增名單) -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
           <div>
             <div class="flex items-center gap-2">
-              <h2 class="text-lg font-bold text-slate-900">出席時段統計熱力矩陣</h2>
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+              <h2 class="text-lg font-bold text-slate-900">瞧瞧大家的回覆</h2>
               <span id="adm-fill-rate-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">填寫率 0%</span>
             </div>
-            <p class="text-xs text-slate-500 mt-0.5">系統自動標註最多人出席之時段；點擊任意時段可深入查看詳細出席與請假名單。</p>
+            <p class="text-xs text-slate-500 mt-0.5">
+              💡 <strong>點擊表格格子可直接調整成員出席意向</strong>（<span class="text-emerald-600 font-bold">⭕ 可以</span> / <span class="text-slate-400 font-bold">❌ 不行</span>）。
+            </p>
           </div>
-          <div class="flex items-center gap-3 text-xs text-slate-500">
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500 inline-block"></span> 全員/最多人到齊</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-200 inline-block"></span> 部分可到</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-100 border border-slate-200 inline-block"></span> 無人可到</span>
+          <div class="flex items-center gap-3 text-xs text-slate-500 shrink-0">
+            <span class="inline-flex items-center gap-1"><span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 font-bold flex items-center justify-center text-[10px]">⭕</span> 可以</span>
+            <span class="inline-flex items-center gap-1"><span class="w-4 h-4 rounded-full bg-slate-100 text-slate-400 font-bold flex items-center justify-center text-[10px]">❌</span> 不行</span>
+            <span class="inline-flex items-center gap-1"><span class="w-4 h-4 rounded-full bg-amber-50 text-amber-500 font-bold flex items-center justify-center text-[10px]">⏳</span> 未填</span>
           </div>
         </div>
 
-        <!-- 矩陣熱力表格 -->
-        <div class="overflow-x-auto custom-scrollbar">
-          <div id="heatmap-grid" class="min-w-[600px] space-y-3">
-            <!-- 動態繪製熱力矩陣 -->
+        <!-- 良辰吉日 (後台候選時段統計與發起人指定開會時間) -->
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-500"></span>
+              <h3 class="text-sm font-bold text-slate-800">良辰吉日 (時段統計)</h3>
+            </div>
+            <span id="adm-tie-hint" class="hidden text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">
+              <i class="fa-solid fa-scale-balanced mr-1"></i> 多個最高票平手，請發起人指定
+            </span>
+          </div>
+          <div id="adm-slots-summary-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            <!-- 動態渲染各時段圈選人數卡片 -->
+          </div>
+        </div>
+
+        <!-- 矩陣呈現表格 -->
+        <div class="overflow-x-auto custom-scrollbar border border-slate-100 rounded-xl">
+          <table class="w-full text-center text-xs sm:text-sm border-collapse">
+            <thead id="adm-matrix-thead" class="bg-slate-50 font-semibold text-slate-700 divide-x divide-slate-100">
+              <!-- 動態生成表頭 -->
+            </thead>
+            <tbody id="adm-matrix-tbody" class="divide-y divide-slate-100">
+              <!-- 動態生成回覆列 -->
+            </tbody>
+            <tfoot id="adm-matrix-tfoot" class="bg-emerald-50/60 font-bold text-emerald-900 border-t-2 border-emerald-200">
+              <!-- 動態生成總計列 -->
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- 新增名單區塊 -->
+        <div class="p-3.5 bg-slate-50/80 border border-dashed border-indigo-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 text-xs text-slate-600">
+            <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-user-plus text-xs"></i>
+            </div>
+            <div>
+              <span class="font-bold text-slate-800">新增與會名單</span>
+              <span class="text-slate-500">輸入姓名加入本會議，並可直接在上方表格設定時段：</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input type="text" id="adm-input-new-participant" placeholder="輸入姓名 (例：陳小美)" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-44 bg-white font-medium">
+            <button type="button" onclick="handleAdminAddParticipant()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs whitespace-nowrap shadow-xs transition-colors flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> 新增名單
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- 受邀者專屬連結管理與催填專區 -->
+      <!-- 第三個長方格: 會議網址 -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3 mb-4">
-          <div>
-            <h2 class="text-lg font-bold text-slate-900">受邀名單與個人專屬連結</h2>
-            <p class="text-xs text-slate-500 mt-0.5">點擊複製按鈕可將免登入專屬連結傳給同仁；或使用下方一鍵範本直接貼進 LINE/Teams。</p>
+        <div class="flex items-center gap-2 mb-3 pb-3 border-b border-slate-100">
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-link"></i>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <button onclick="copyAllInviteMessage()" class="px-3.5 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
-              <i class="fa-solid fa-copy"></i> 複製全體 LINE 邀請範本
-            </button>
-            <button onclick="copyReminderMessage()" class="px-3.5 py-2 rounded-xl bg-amber-500 text-white hover:bg-amber-600 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
-              <i class="fa-solid fa-bell"></i> 複製未填催填名單
-            </button>
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">會議網址</h2>
+            <p class="text-xs text-slate-500">將此網址發送給與會成員，點擊即可直接進入前台查看回覆與勾選時間。</p>
           </div>
         </div>
 
-        <!-- 名單列表 -->
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead>
-              <tr class="text-xs text-slate-400 uppercase border-b border-slate-100">
-                <th class="py-3 px-3">姓名</th>
-                <th class="py-3 px-3">填寫狀態</th>
-                <th class="py-3 px-3">最後填寫時間</th>
-                <th class="py-3 px-3 text-right">免登入專屬連結</th>
-              </tr>
-            </thead>
-            <tbody id="adm-participants-tbody" class="divide-y divide-slate-100 font-medium">
-              <!-- 動態渲染受邀名單 -->
-            </tbody>
-          </table>
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <div class="flex-1 flex items-center gap-2 min-w-0">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">調查網址：</span>
+            <code id="adm-single-url-display" class="text-xs text-indigo-600 font-mono font-semibold truncate select-all">載入中...</code>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button onclick="copySingleMeetingUrl()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+              <i class="fa-regular fa-copy"></i> 複製網址
+            </button>
+            <button onclick="copyReminderMessage()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+              <i class="fa-regular fa-copy"></i> 複製催填訊息
+            </button>
+            <button onclick="openEmailReminder()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-envelope"></i> Email 催填
+            </button>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 視圖 3: 受邀者免登入投票頁 (Participant View) -->
-    <section id="view-participant" class="hidden">
-      <div class="max-w-2xl mx-auto space-y-6">
-        <!-- 會議標題與身分歡迎卡片 -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-7">
-          <div class="flex items-center justify-between mb-3">
-            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
-              <i class="fa-solid fa-user-tag text-xs"></i> 主場發起人：<span id="pt-host-name">林經理</span>
-            </span>
-            <span id="pt-status-pill" class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-              調查進行中
-            </span>
+    <!-- 視圖 3: 前台受邀者調查頁面 (LINE 挑日子呈現方式) -->
+    <section id="view-participant" class="hidden space-y-6">
+      <!-- 醒目截止倒數計時看板 (科技感漸層配色) -->
+      <div id="pt-countdown-banner" class="bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 text-white rounded-2xl p-5 sm:p-6 shadow-xl border border-cyan-300/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-cyan-200 text-2xl shrink-0 shadow-inner">
+            <i class="fa-solid fa-hourglass-half animate-pulse"></i>
           </div>
-
-          <h1 id="pt-meeting-title" class="text-2xl font-bold text-slate-900 mb-2">會議主題載入中</h1>
-          <p id="pt-meeting-notes" class="text-slate-600 text-sm mb-4 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">會議備註資訊載入中...</p>
-
-          <div class="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
-            <span id="pt-deadline-text"><i class="fa-regular fa-clock mr-1"></i> 調查截止：載入中...</span>
-            <span id="pt-location-text"><i class="fa-solid fa-location-dot mr-1"></i> 地點：載入中...</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-cyan-100">調查截止倒數計時</span>
+              <span id="pt-countdown-status-badge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-white/20 text-white font-semibold border border-white/30 backdrop-blur-xs">進行中</span>
+            </div>
+            <div class="text-xs sm:text-sm text-blue-100 mt-1" id="pt-deadline-detail">
+              <i class="fa-regular fa-clock mr-1 text-cyan-200"></i> 截止時間：<span class="font-semibold text-white font-mono">載入中...</span>
+            </div>
           </div>
         </div>
 
-        <!-- 投票互動區域卡片 -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-7">
-          <div class="border-b border-slate-100 pb-4 mb-5">
-            <div class="flex items-center justify-between">
-              <div>
-                <span class="text-xs font-medium text-slate-400">目前身分確認</span>
-                <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  您好，<span id="pt-user-name" class="text-indigo-600 font-extrabold underline decoration-indigo-200 underline-offset-4">受邀成員</span>
-                </h2>
-              </div>
-              <div class="flex gap-2">
-                <button type="button" onclick="selectAllVotes(true)" class="text-xs px-2.5 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 transition-colors">
-                  全部可以
-                </button>
-                <button type="button" onclick="selectAllVotes(false)" class="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-                  全部清空
-                </button>
-              </div>
-            </div>
-            <p class="text-xs text-slate-500 mt-2">請直接在下方時段點擊切換。截止日前可隨時返回覆蓋更新。</p>
+        <!-- 醒目天、時、分、秒數字格 (半透明科技玻璃卡片) -->
+        <div class="flex items-center gap-2 self-center sm:self-auto" id="pt-countdown-digits">
+          <div class="bg-white/15 backdrop-blur-md border border-white/25 px-3 py-2 rounded-xl min-w-[56px] text-center shadow-sm">
+            <span id="cd-days" class="text-2xl sm:text-3xl font-black text-white font-mono block">00</span>
+            <span class="text-[10px] text-blue-100 font-medium">天</span>
           </div>
+          <span class="text-cyan-200 font-black text-xl">:</span>
+          <div class="bg-white/15 backdrop-blur-md border border-white/25 px-3 py-2 rounded-xl min-w-[56px] text-center shadow-sm">
+            <span id="cd-hours" class="text-2xl sm:text-3xl font-black text-white font-mono block">00</span>
+            <span class="text-[10px] text-blue-100 font-medium">時</span>
+          </div>
+          <span class="text-cyan-200 font-black text-xl">:</span>
+          <div class="bg-white/15 backdrop-blur-md border border-white/25 px-3 py-2 rounded-xl min-w-[56px] text-center shadow-sm">
+            <span id="cd-mins" class="text-2xl sm:text-3xl font-black text-white font-mono block">00</span>
+            <span class="text-[10px] text-blue-100 font-medium">分</span>
+          </div>
+          <span class="text-cyan-200 font-black text-xl">:</span>
+          <div class="bg-white/15 backdrop-blur-md border border-white/25 px-3 py-2 rounded-xl min-w-[56px] text-center shadow-sm">
+            <span id="cd-secs" class="text-2xl sm:text-3xl font-black text-cyan-200 font-mono block">00</span>
+            <span class="text-[10px] text-cyan-100 font-medium">秒</span>
+          </div>
+        </div>
+      </div>
 
-          <!-- 逾期唯讀鎖定提示條 (過期才出現) -->
-          <div id="pt-locked-banner" class="hidden mb-5 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-start gap-3">
-            <i class="fa-solid fa-triangle-exclamation text-amber-500 mt-0.5 text-base"></i>
+      <!-- 發起人已指定開會時間醒目橫幅 (若有指定時顯示) -->
+      <div id="pt-designated-notice" class="hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-900/90 via-slate-900 to-indigo-950 text-white border border-cyan-400/40 shadow-lg flex items-center justify-between gap-3 backdrop-blur-md">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 flex items-center justify-center text-lg shrink-0">
+            <i class="fa-solid fa-bullseye"></i>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-cyan-300">發起人已敲定正式開會時間</div>
+            <div class="text-sm sm:text-base font-extrabold text-white mt-0.5" id="pt-designated-slot-text">
+              載入中...
+            </div>
+          </div>
+        </div>
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-cyan-400 text-slate-900 shrink-0 shadow-sm">
+          正式定案
+        </span>
+      </div>
+
+      <!-- 會議主題與發起人標籤 (第二長方格：融入科技感視覺，右上僅保留筆與鎖圖示) -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-cyan-300/60 transition-all p-6 sm:p-7 relative overflow-hidden group">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 opacity-80"></div>
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-50 to-cyan-50 text-indigo-700 border border-indigo-100">
+              <i class="fa-solid fa-user-tie text-xs text-indigo-500"></i> 發起人：<span id="pt-host-name">載入中</span>
+            </span>
+            <span id="pt-status-pill" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              調查進行中
+            </span>
+          </div>
+          <!-- 右上發起人後台登入：刪除文字，僅留筆與鎖圖示 -->
+          <button onclick="switchCurrentToAdmin()" class="w-8 h-8 rounded-xl border border-slate-200 hover:border-indigo-400 bg-slate-50 hover:bg-indigo-50/70 text-slate-600 hover:text-indigo-600 transition-all flex items-center justify-center gap-1 shadow-2xs group/btn" title="發起人後台登入 (需密碼編修)">
+            <i class="fa-solid fa-pen-to-square text-indigo-500 text-xs"></i>
+            <i class="fa-solid fa-lock text-slate-400 group-hover/btn:text-indigo-500 text-[10px]"></i>
+          </button>
+        </div>
+
+        <h1 id="pt-meeting-title" class="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">會議主題載入中</h1>
+        <p id="pt-meeting-notes" class="text-slate-600 text-sm mb-4 leading-relaxed bg-slate-50/80 p-3.5 rounded-xl border border-slate-100">備註載入中...</p>
+
+        <!-- 開會地點 -->
+        <div class="text-xs text-slate-500 pt-3 border-t border-slate-100 flex items-center">
+          <span id="pt-location-text"><i class="fa-solid fa-location-dot text-indigo-500 mr-1.5"></i> 地點：載入中...</span>
+        </div>
+      </div>
+
+      <!-- 逾期唯讀鎖定提示條 (過期才出現) -->
+      <div id="pt-locked-banner" class="hidden p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-start gap-3 shadow-sm">
+        <i class="fa-solid fa-lock text-amber-600 mt-1 text-base"></i>
+        <div>
+          <p class="font-bold text-amber-900">此會議調查已截止，已轉為歷史紀錄與唯讀模式。</p>
+          <p class="text-xs text-amber-700 mt-0.5">目前正進行時間定案。若有行程突發異動，請直接洽詢發起人：<strong id="pt-locked-host">發起人</strong>。</p>
+        </div>
+      </div>
+
+      <!-- 區塊 1：良辰吉日 (科技感設計升級，原候選時段統計狀況) -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-cyan-200/80 transition-all p-6 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2.5">
+            <span class="w-3 h-3 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 shadow-xs shadow-cyan-300"></span>
+            <h2 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">良辰吉日</h2>
+            <span class="text-[11px] font-medium text-slate-400 hidden sm:inline">・時段人氣排行與交集狀況</span>
+          </div>
+          <span id="pt-total-response-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-indigo-700 border border-slate-200">已回覆：0 人</span>
+        </div>
+
+        <div id="pt-slots-summary-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <!-- 動態渲染各時段圈選人數卡片 (月/日 呈現) -->
+        </div>
+      </div>
+
+      <!-- 區塊 2：瞧瞧大家的回覆 (科技感卡片包裝，直接點擊矩陣編修 & 不在名單者直接新增) -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2 mb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+              <h2 class="text-base sm:text-lg font-bold text-slate-900">瞧瞧大家的回覆</h2>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">
+              💡 <strong>直接點擊表格格子即可快速切換您的意向</strong>（<span class="text-emerald-600 font-bold">⭕ 可以</span> / <span class="text-slate-400 font-bold">❌ 不行</span>）。
+            </p>
+          </div>
+          <div class="flex items-center gap-3 text-xs text-slate-500 shrink-0">
+            <span class="inline-flex items-center gap-1"><span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 font-bold flex items-center justify-center text-[10px]">⭕</span> 可以</span>
+            <span class="inline-flex items-center gap-1"><span class="w-4 h-4 rounded-full bg-slate-100 text-slate-400 font-bold flex items-center justify-center text-[10px]">❌</span> 不行</span>
+            <span class="inline-flex items-center gap-1"><span class="w-4 h-4 rounded-full bg-amber-50 text-amber-500 font-bold flex items-center justify-center text-[10px]">⏳</span> 未填</span>
+          </div>
+        </div>
+
+        <!-- 矩陣呈現表格 (直接可點擊編修) -->
+        <div class="overflow-x-auto custom-scrollbar border border-slate-100 rounded-xl">
+          <table class="w-full text-center text-xs sm:text-sm border-collapse">
+            <thead id="line-matrix-thead" class="bg-slate-50 font-semibold text-slate-700 divide-x divide-slate-100">
+              <!-- 動態生成日期表頭 (月/日 呈現) -->
+            </thead>
+            <tbody id="line-matrix-tbody" class="divide-y divide-slate-100">
+              <!-- 動態生成每位成員的回覆列 (直接點擊格子編修) -->
+            </tbody>
+            <tfoot id="line-matrix-tfoot" class="bg-emerald-50/60 font-bold text-emerald-900 border-t-2 border-emerald-200">
+              <!-- 動態生成各時段總計可出席人數 -->
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- 不在名單上？自行新增加入區塊 -->
+        <div id="unlisted-user-box" class="mt-4 p-3.5 bg-slate-50/80 border border-dashed border-indigo-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 text-xs text-slate-600">
+            <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-user-plus text-xs"></i>
+            </div>
             <div>
-              <p class="font-bold">此會議調查已截止，選項已鎖定為唯讀狀態。</p>
-              <p class="text-xs text-amber-700 mt-0.5">目前正進行時間定案統計。如需緊急調整行程，請直接聯繫發起人：<strong id="pt-locked-host">發起人</strong>。</p>
+              <span class="font-bold text-slate-800">不在受邀名單上？</span>
+              <span class="text-slate-500">您可以直接在此輸入姓名加入調查，並直接在上方表格勾選時間：</span>
             </div>
           </div>
-
-          <!-- 時段勾選矩陣 -->
-          <div id="pt-slots-container" class="space-y-4">
-            <!-- 動態插入日期與上下午按鈕 -->
-          </div>
-
-          <!-- 送出按鈕 -->
-          <div class="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
-            <span id="pt-last-saved-time" class="text-xs text-slate-400">尚未填寫</span>
-            <button id="btn-submit-vote" onclick="handleSubmitVote()" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md shadow-indigo-100 transition-all flex items-center gap-2">
-              <i class="fa-solid fa-paper-plane"></i> <span>確認送出時間意向</span>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input type="text" id="input-new-participant" placeholder="輸入您的姓名 (例：陳小美)" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-44 bg-white font-medium">
+            <button type="button" onclick="handleAddUnlistedParticipant()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs whitespace-nowrap shadow-xs transition-colors flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> 加入名單
             </button>
           </div>
         </div>
@@ -342,7 +485,7 @@
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1.5">拍板定案的時段：</label>
           <select id="modal-select-final-slot" onchange="regenerateNoticePreview()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white font-medium text-sm focus:ring-2 focus:ring-indigo-500">
-            <!-- 動態生成各時段選項，最高票自動置頂選中 -->
+            <!-- 動態生成各時段選項，最高票自動置頂選中 (以月/日呈現) -->
           </select>
         </div>
 
@@ -385,10 +528,10 @@
         <i class="fa-solid fa-shield-halved"></i>
       </div>
       <h3 class="text-lg font-bold text-slate-900 text-center mb-1">發起人身分驗證</h3>
-      <p class="text-xs text-slate-500 text-center mb-4">請輸入此會議之管理密碼以進入統計看盤</p>
+      <p class="text-xs text-slate-500 text-center mb-4">請輸入此會議之管理密碼以進入統計看板</p>
 
       <div class="space-y-3">
-        <input type="password" id="auth-pwd-input" placeholder="請輸入管理密碼 (預設 admin)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-center font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <input type="password" id="auth-pwd-input" placeholder="請輸入管理密碼 (預設 09350935)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-center font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
         <p id="auth-error-msg" class="text-xs text-rose-500 text-center hidden">密碼錯誤，請重新輸入</p>
         <button onclick="verifyAdminPassword()" class="w-full py-2.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 transition-colors">
           確認登入後台
@@ -413,13 +556,101 @@
     </div>
   </div>
 
-  <!-- 彈窗 4: 特定時段詳細名單檢視 (Slot Details Modal) -->
+  <!-- 彈窗: 編輯會議基本資訊 -->
+  <div id="modal-edit-meeting" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 p-6">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">編輯會議資訊</h3>
+            <p class="text-xs text-slate-500">修改主題、發起人、地點與說明備註</p>
+          </div>
+        </div>
+        <button onclick="closeEditMeetingModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="form-edit-meeting" onsubmit="handleSaveEditedMeeting(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">會議主題 <span class="text-rose-500">*</span></label>
+          <input type="text" id="edit-title" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">發起人姓名 / 主場識別 <span class="text-rose-500">*</span></label>
+          <input type="text" id="edit-host" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">開會地點 / 線上連結備註</label>
+          <input type="text" id="edit-location" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">會議說明或議程備註</label>
+          <textarea id="edit-notes" rows="3" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+        </div>
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeEditMeetingModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 text-xs font-medium hover:bg-slate-50">取消</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm">儲存變更</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 彈窗 4: 會議歷程與歷史記錄 (只保留一年，以清單方式呈現) -->
+  <div id="modal-history" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-100 p-6 flex flex-col max-h-[85vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> 調查會議時間歷史記錄
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">近一年內之會議清單，點選單一會議即可展開細節資訊與歷程</p>
+        </div>
+        <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- 視圖 A：會議清單 (預設呈現) -->
+      <div id="history-view-list" class="flex-1 overflow-y-auto pr-1 space-y-2.5">
+        <!-- 動態渲染清單項目 -->
+      </div>
+
+      <!-- 視圖 B：特定會議詳細資訊與時間軸 (點擊清單項目後呈現) -->
+      <div id="history-view-detail" class="hidden flex-1 overflow-y-auto pr-1 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <button onclick="backToHistoryList()" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1">
+            <i class="fa-solid fa-arrow-left"></i> 返回會議歷史清單
+          </button>
+          <button id="btn-history-enter-poll" class="text-xs px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg font-medium transition-colors">
+            切換進入此會議後台 →
+          </button>
+        </div>
+
+        <div id="history-poll-card" class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <!-- 動態插入該場會議發起資訊摘要 -->
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">會議操作歷程時間軸</h4>
+          <div id="history-logs-container" class="space-y-2 text-xs">
+            <!-- 動態載入歷程 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 彈窗 5: 特定時段詳細名單檢視 (Slot Details Modal) -->
   <div id="modal-slot-detail" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 border border-slate-100">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
         <div>
-          <h3 id="slot-modal-title" class="text-base font-bold text-slate-900">2026/10/22 下午 出席狀況</h3>
-          <p id="slot-modal-stats" class="text-xs text-indigo-600 font-medium">4 / 5 人可出席 (80%)</p>
+          <h3 id="slot-modal-title" class="text-base font-bold text-slate-900">出席狀況明細</h3>
+          <p id="slot-modal-stats" class="text-xs text-indigo-600 font-medium">計算中...</p>
         </div>
         <button onclick="closeSlotDetailModal()" class="text-slate-400 hover:text-slate-600 p-1">
           <i class="fa-solid fa-xmark text-lg"></i>
@@ -454,107 +685,67 @@
     </div>
   </div>
 
-  <!-- 底部快捷角色切換測試工具列 (非常方便單人測試所有角色) -->
-  <aside class="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 text-xs w-[94%] max-w-3xl overflow-x-auto custom-scrollbar">
-    <div class="flex items-center gap-1.5 shrink-0 text-amber-400 font-bold">
-      <i class="fa-solid fa-gamepad"></i>
-      <span class="hidden sm:inline">身分測試工具：</span>
-    </div>
-
-    <div class="flex items-center gap-1.5 shrink-0" id="quick-role-buttons">
-      <!-- 動態載入發起人與受邀成員按鈕 -->
-    </div>
-
-    <div class="h-4 w-px bg-slate-700 shrink-0"></div>
-
-    <div class="flex items-center gap-1.5 shrink-0">
-      <button onclick="resetToDemoData()" title="重新重設回示範資料" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 text-[11px] font-medium transition-colors">
-        <i class="fa-solid fa-arrow-rotate-left mr-1"></i>重設示範
-      </button>
-    </div>
-  </aside>
-
   <script>
     /* ==========================================================================
-       狀態儲存庫與資料結構 (LocalStorage 持久化)
+       狀態儲存庫與資料結構 (LocalStorage 持久化 - 正式發布版)
        ========================================================================== */
-    const STORAGE_KEY = 'MEETSYNC_DATA_V1';
+    const STORAGE_KEY = 'TIME_HUNTER_PROD_V1';
     let appState = {
       polls: {},
       currentPollId: null,
-      currentToken: null,
       selectedSlotDetailKey: null,
       currentNoticeFormat: 'line',
       currentQuery: null,
       _session: {}
     };
 
+    // 日期格式化為「月/日」(例如 2026-10-20 -> 10/20)
+    function formatDateMD(inputDateStr) {
+      if (!inputDateStr) return '';
+      const parts = inputDateStr.split('-');
+      if (parts.length === 3) {
+        return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
+      }
+      return inputDateStr;
+    }
+
     // 安全 SessionStorage 包裝器，避免在受限沙盒 iframe 拋出 SecurityError
     const safeSession = {
-      getItem(key) {
+      getItem(k) {
         try {
-          return sessionStorage.getItem(key);
+          return sessionStorage.getItem(k);
         } catch (e) {
-          return appState._session[key] || null;
+          return appState._session[k] || null;
         }
       },
-      setItem(key, val) {
+      setItem(k, val) {
         try {
-          sessionStorage.setItem(key, val);
+          sessionStorage.setItem(k, val);
         } catch (e) {
-          appState._session[key] = val;
+          appState._session[k] = val;
         }
       }
     };
 
-    // 示範預設資料 (初次載入或重設時使用)
-    const DEMO_POLL = {
-      id: 'demo-2026-poll',
-      title: '2026 Q4 專案進度與預算審查會',
-      host: '林經理 (專案總監)',
-      location: '總部 301 會議室 / 線上 Teams 同步',
-      notes: '請各部門負責人準備好 5 分鐘 Q3 成果回顧與 Q4 預算規劃簡報，感謝各位協助！',
-      password: 'admin',
-      // 設定截止時間為未來時間
-      deadline: '2026-10-25T18:00',
-      status: 'active', // 'active' | 'closed'
-      finalizedSlot: '2026-10-22_pm',
-      dates: ['2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23'],
-      participants: [
-        {
-          token: 'tok_wang',
-          name: '王小明 (前端)',
-          votes: { '2026-10-20_am': true, '2026-10-20_pm': true, '2026-10-21_pm': true, '2026-10-22_pm': true, '2026-10-23_am': true },
-          submittedAt: '2026-10-14 10:20'
-        },
-        {
-          token: 'tok_lee',
-          name: '李大華 (後端)',
-          votes: { '2026-10-20_pm': true, '2026-10-21_am': true, '2026-10-22_am': true, '2026-10-22_pm': true },
-          submittedAt: '2026-10-14 11:05'
-        },
-        {
-          token: 'tok_chang',
-          name: '張小芬 (設計)',
-          votes: { '2026-10-20_pm': true, '2026-10-22_pm': true, '2026-10-23_am': true, '2026-10-23_pm': true },
-          submittedAt: '2026-10-14 14:30'
-        },
-        {
-          token: 'tok_chen',
-          name: '陳大同 (產品經理)',
-          votes: null, // 尚未填寫
-          submittedAt: null
-        },
-        {
-          token: 'tok_liu',
-          name: '劉雅婷 (行銷企劃)',
-          votes: null, // 尚未填寫
-          submittedAt: null
-        }
-      ]
-    };
+    // 檢查並過濾超過一年的過期會議記錄 (保留近一年)
+    function pruneOldPolls() {
+      const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      let changed = false;
 
-    // 初始化或讀取 LocalStorage
+      Object.keys(appState.polls).forEach(id => {
+        const p = appState.polls[id];
+        const recordTime = new Date(p.createdAt || p.deadline || Date.now()).getTime();
+        if (now - recordTime > ONE_YEAR_MS) {
+          delete appState.polls[id];
+          changed = true;
+        }
+      });
+
+      if (changed) saveStorage();
+    }
+
+    // 初始化或讀取 LocalStorage (正式版初始為乾淨空狀態)
     function initStorage() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -563,12 +754,10 @@
         } catch (e) {
           appState.polls = {};
         }
+      } else {
+        appState.polls = {};
       }
-      // 若無任何會議資料，自動寫入示範資料
-      if (!appState.polls || Object.keys(appState.polls).length === 0) {
-        appState.polls = { [DEMO_POLL.id]: JSON.parse(JSON.stringify(DEMO_POLL)) };
-        saveStorage();
-      }
+      pruneOldPolls();
     }
 
     function saveStorage() {
@@ -600,7 +789,7 @@
       }, 2800);
     }
 
-    // 複製文字至剪貼簿 (支援 iFrame 限制相容 fallback)
+    // 複製文字至剪貼簿
     function copyText(text, successMsg = '已複製到剪貼簿！') {
       const textArea = document.createElement('textarea');
       textArea.value = text;
@@ -622,7 +811,12 @@
       document.body.removeChild(textArea);
     }
 
-    // 安全取得可分享的基礎網址
+    // 取得單一會議公開網址 (全體共用同一網址)
+    function getSingleMeetingUrl(pollId) {
+      const base = getShareableBaseUrl();
+      return `${base}?poll=${pollId}`;
+    }
+
     function getShareableBaseUrl() {
       try {
         if (window.location.protocol === 'blob:') {
@@ -652,13 +846,12 @@
       }
 
       const params = new URLSearchParams(searchStr.startsWith('?') ? searchStr.substring(1) : searchStr);
-      const pollId = params.get('poll') || Object.keys(appState.polls)[0] || DEMO_POLL.id;
-      const token = params.get('token');
+      const pollKeys = Object.keys(appState.polls || {});
+      const pollId = params.get('poll') || (pollKeys.length > 0 ? pollKeys[0] : null);
       const isAdmin = params.get('admin') === '1';
-      const isCreate = params.get('create') === '1';
+      const isCreate = params.get('create') === '1' || !pollId || !appState.polls[pollId];
 
       appState.currentPollId = pollId;
-      appState.currentToken = token;
 
       // 切換主畫面
       const viewCreate = document.getElementById('view-create');
@@ -670,10 +863,11 @@
       viewParticipant.classList.add('hidden');
 
       if (isCreate) {
+        // 若無任何會議或指定建立頁，直接進入建立會議視圖
         viewCreate.classList.remove('hidden');
         initCreatePollView();
       } else if (isAdmin) {
-        // 進入後台：檢查密碼
+        // 後台驗證
         const authKey = 'AUTH_' + pollId;
         if (safeSession.getItem(authKey) === 'true') {
           viewAdmin.classList.remove('hidden');
@@ -681,60 +875,47 @@
         } else {
           document.getElementById('modal-auth').classList.remove('hidden');
         }
-      } else if (token) {
-        // 進入受邀者投票頁
+      } else {
+        // 預設進入受邀者前台調查頁面
         viewParticipant.classList.remove('hidden');
         renderParticipantView();
-      } else {
-        // 預設切換至後台展示 (不重調 navigateTo 避免沙盒遞迴例外)
-        appState.currentQuery = `?poll=${pollId}&admin=1`;
-        safeSession.setItem('AUTH_' + pollId, 'true');
-        viewAdmin.classList.remove('hidden');
-        renderAdminDashboard();
       }
-
-      renderQuickTestingDock();
     }
 
     function navigateTo(queryStr) {
       appState.currentQuery = queryStr;
-
-      // 嘗試安全更新瀏覽器歷史網址；若在沙盒或 blob: 環境拋出 SecurityError 則安全降級
       try {
         if (window.location.protocol !== 'blob:' && window.history && window.history.pushState) {
           const url = window.location.pathname + queryStr;
           window.history.pushState({}, '', url);
         }
       } catch (err) {
-        // 沙盒與 blob 模式下正常靜音降級
+        // 沙盒降級
       }
-
       parseRoute(queryStr);
     }
 
     function switchCurrentToAdmin() {
-      if (appState.currentPollId) {
+      if (appState.currentPollId && appState.polls[appState.currentPollId]) {
         navigateTo(`?poll=${appState.currentPollId}&admin=1`);
       } else {
-        navigateTo(`?poll=${DEMO_POLL.id}&admin=1`);
+        navigateTo('?create=1');
       }
     }
 
-    // 建立新會議表單處理邏輯
+    // 建立新會議表單邏輯
     let currentCreateDates = [];
 
     function initCreatePollView() {
-      // 預設設定 3 天日期 (從明天算起)
       const today = new Date();
       currentCreateDates = [];
       for (let i = 1; i <= 3; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
-        currentCreateDates.push(d.toISOString().split('T')[0]);
+        const nextDay = new Date(today);
+        nextDay.setDate(today.getDate() + i);
+        currentCreateDates.push(nextDay.toISOString().split('T')[0]);
       }
       renderDateInputs();
 
-      // 設定預設截止時間 (7 天後傍晚 18:00)
       const dl = new Date(today);
       dl.setDate(today.getDate() + 7);
       dl.setHours(18, 0, 0, 0);
@@ -784,14 +965,22 @@
       }
     }
 
-    function loadDemoPollData() {
-      document.getElementById('cp-title').value = '2026 年度產品策略發布會';
-      document.getElementById('cp-host').value = '陳執行長 (主講人)';
-      document.getElementById('cp-location').value = '8 樓大會議室 & Google Meet';
-      document.getElementById('cp-notes').value = '請全體核心團隊務必勾選可以的時間。';
-      document.getElementById('cp-password').value = 'admin';
-      document.getElementById('cp-participants').value = '林技術長\n黃設計總監\n張營運長\n高行銷經理';
-      showToast('已填入示範範本資料！');
+    // 解析單一成員字串 (支援 "姓名 <email>"、"姓名 email" 或單純 "姓名")
+    function parseParticipantEntry(rawStr) {
+      const clean = rawStr.trim();
+      const emailMatch = clean.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+      if (emailMatch) {
+        const email = emailMatch[1];
+        let name = clean.replace(emailMatch[0], '').replace(/[<>,]/g, '').trim();
+        return {
+          name: name || email,
+          email: email
+        };
+      }
+      return {
+        name: clean,
+        email: null
+      };
     }
 
     function handleCreatePoll(e) {
@@ -804,19 +993,25 @@
       const deadline = document.getElementById('cp-deadline').value;
       const rawParticipants = document.getElementById('cp-participants').value.trim();
 
-      const names = rawParticipants.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
-      if (names.length === 0) {
+      const lines = rawParticipants.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+      if (lines.length === 0) {
         showToast('請至少輸入一位受邀者姓名', 'warning');
         return;
       }
 
       const pollId = 'poll_' + Date.now().toString(36);
-      const participants = names.map((name, i) => ({
-        token: 'tok_' + Math.random().toString(36).substring(2, 9),
-        name: name,
-        votes: null,
-        submittedAt: null
-      }));
+      const participants = lines.map(line => {
+        const parsed = parseParticipantEntry(line);
+        return {
+          name: parsed.name,
+          email: parsed.email,
+          votes: null,
+          submittedAt: null
+        };
+      });
+
+      const now = new Date();
+      const nowFormatted = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
       const newPoll = {
         id: pollId,
@@ -829,18 +1024,21 @@
         status: 'active',
         finalizedSlot: null,
         dates: [...currentCreateDates],
-        participants
+        createdAt: now.toISOString(),
+        participants,
+        historyLogs: [
+          { time: nowFormatted, event: `發起人「${host}」建立了會議調查「${title}」。` }
+        ]
       };
 
       appState.polls[pollId] = newPoll;
       saveStorage();
-      safeSession.setItem('AUTH_' + pollId, 'true'); // 建立者自動賦予授權
+      safeSession.setItem('AUTH_' + pollId, 'true');
 
-      showToast('會議建立成功！已為成員生成專屬連結', 'success');
+      showToast('會議建立成功！已生成專屬網址', 'success');
       navigateTo(`?poll=${pollId}&admin=1`);
     }
 
-    // 後台密碼檢驗
     function verifyAdminPassword() {
       const poll = getCurrentPoll();
       if (!poll) return;
@@ -859,7 +1057,6 @@
       }
     }
 
-    // 發起人後台儀表板渲染
     function renderAdminDashboard() {
       const poll = getCurrentPoll();
       if (!poll) return;
@@ -868,7 +1065,6 @@
       document.getElementById('adm-desc').innerText = (poll.location ? `地點：${poll.location}` : '') + (poll.notes ? ` ｜ 備註：${poll.notes}` : '');
       document.getElementById('adm-host-badge').innerText = `發起人：${poll.host}`;
 
-      // 狀態 Badge & 按鈕
       const statusBadge = document.getElementById('adm-status-badge');
       const toggleBtn = document.getElementById('btn-toggle-status');
       const isExpired = new Date(poll.deadline) <= new Date();
@@ -883,23 +1079,313 @@
         toggleBtn.innerHTML = '<i class="fa-solid fa-lock text-slate-500"></i> 手動提前截止';
       }
 
-      // 更新倒數文字
       updateAdminCountdown();
 
-      // 計算填寫進度
       const filledCount = poll.participants.filter(p => p.votes !== null).length;
       const totalCount = poll.participants.length;
       const rate = totalCount > 0 ? Math.round((filledCount / totalCount) * 100) : 0;
       document.getElementById('adm-fill-rate-badge').innerText = `填寫進度：${filledCount}/${totalCount} 人 (${rate}%)`;
 
-      // 渲染時段熱力統計
-      renderHeatmapGrid(poll);
+      const singleUrl = getSingleMeetingUrl(poll.id);
+      document.getElementById('adm-single-url-display').innerText = singleUrl;
 
-      // 渲染受邀者列表
-      renderAdminParticipantTable(poll);
+      // 渲染後台的「瞧瞧大家的回覆」(比照前台)
+      renderAdminLineMatrix(poll, isExpired);
     }
 
-    // 更新截止倒數
+    function renderAdminLineMatrix(poll, isExpired) {
+      // 1. 渲染「良辰吉日」候選時段統計卡片 (含發起人平手指定開會時間按鈕)
+      const grid = document.getElementById('adm-slots-summary-grid');
+      const tieHint = document.getElementById('adm-tie-hint');
+      grid.innerHTML = '';
+
+      let maxVotes = 0;
+      let slotVotes = {};
+      poll.dates.forEach(slotDate => {
+        ['am', 'pm'].forEach(period => {
+          const key = `${slotDate}_${period}`;
+          const count = poll.participants.filter(p => p.votes && p.votes[key] === true).length;
+          slotVotes[key] = count;
+          if (count > maxVotes) maxVotes = count;
+        });
+      });
+
+      // 檢查是否有平手狀況 (多於一個時段為最高票且大於0)
+      const tieSlots = Object.keys(slotVotes).filter(k => slotVotes[k] === maxVotes && maxVotes > 0);
+      if (tieSlots.length > 1) {
+        tieHint.classList.remove('hidden');
+      } else {
+        tieHint.classList.add('hidden');
+      }
+
+      const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+
+      poll.dates.forEach(slotDate => {
+        const dObj = new Date(slotDate);
+        const dayStr = dayNames[dObj.getDay()];
+        const displayMD = formatDateMD(slotDate);
+        ['am', 'pm'].forEach(period => {
+          const key = `${slotDate}_${period}`;
+          const count = slotVotes[key] || 0;
+          const isBest = maxVotes > 0 && count === maxVotes;
+          const isDesignated = poll.designatedSlot === key;
+
+          const card = document.createElement('div');
+          let borderBg = 'bg-slate-50/70 border-slate-200 hover:border-slate-300';
+          if (isDesignated) {
+            borderBg = 'bg-cyan-500/10 border-cyan-500 ring-2 ring-cyan-400 shadow-sm';
+          } else if (isBest) {
+            borderBg = 'bg-emerald-500/10 border-emerald-500 shadow-sm';
+          }
+
+          card.className = `p-3 rounded-xl border text-center flex flex-col justify-between transition-all ${borderBg}`;
+          card.innerHTML = `
+            <div>
+              <div class="text-xs font-bold text-slate-800">${displayMD} (${dayStr})</div>
+              <div class="text-[11px] font-medium text-slate-500">${period === 'am' ? '上午' : '下午'}</div>
+            </div>
+            <div class="my-2">
+              <span class="text-lg font-extrabold ${isDesignated ? 'text-cyan-700' : isBest ? 'text-emerald-700' : 'text-slate-700'}">${count}</span>
+              <span class="text-xs text-slate-400">人 ⭕</span>
+            </div>
+            <div class="space-y-1">
+              ${isDesignated 
+                ? '<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-600 text-white w-full">🎯 發起人指定</span>' 
+                : isBest 
+                  ? '<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white w-full">👑 最高票</span>' 
+                  : '<span class="text-[10px] text-indigo-600 font-medium cursor-pointer block" onclick="openSlotDetailModal(\'' + key + '\')">查看名單 →</span>'}
+              <button type="button" onclick="handleDesignateSlot('${key}')" class="w-full text-[10px] py-1 rounded bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-600 font-semibold transition-colors">
+                ${isDesignated ? '取消指定' : '指定此時間'}
+              </button>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      });
+
+      // 2. 渲染回覆矩陣表格
+      const thead = document.getElementById('adm-matrix-thead');
+      const tbody = document.getElementById('adm-matrix-tbody');
+      const tfoot = document.getElementById('adm-matrix-tfoot');
+
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+      tfoot.innerHTML = '';
+
+      let ths = `<tr class="border-b border-slate-200"><th class="py-2.5 px-3 text-left w-40 bg-slate-100/80">與會者姓名</th>`;
+      poll.dates.forEach(slotDate => {
+        const dObj = new Date(slotDate);
+        const dayStr = dayNames[dObj.getDay()];
+        const displayMD = formatDateMD(slotDate);
+        ths += `<th class="py-2 px-2 text-center" colspan="2">
+                  <div class="font-bold text-slate-800">${displayMD}</div>
+                  <div class="text-[10px] text-slate-400 font-normal">週${dayStr}</div>
+                </th>`;
+      });
+      ths += `</tr>`;
+
+      ths += `<tr class="text-[11px] bg-slate-50 text-slate-500 border-b border-slate-200"><th class="py-1 px-3 text-left font-normal text-slate-400">點擊右側時段切換</th>`;
+      poll.dates.forEach(() => {
+        ths += `<th class="py-1 px-1.5 text-center font-medium">上午</th>`;
+        ths += `<th class="py-1 px-1.5 text-center font-medium">下午</th>`;
+      });
+      ths += `</tr>`;
+      thead.innerHTML = ths;
+
+      // 內容列表
+      poll.participants.forEach((p, pIdx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-indigo-50/30 transition-colors group';
+
+        let rowHtml = `<td class="py-2.5 px-3 text-left font-bold text-slate-900 border-r border-slate-100 flex items-center justify-between">
+                         <span class="truncate">${p.name}</span>
+                         ${p.votes === null ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-700 font-normal shrink-0 ml-1">未填</span>' : ''}
+                       </td>`;
+
+        poll.dates.forEach(slotDate => {
+          ['am', 'pm'].forEach(period => {
+            const key = `${slotDate}_${period}`;
+            let cellContent = '';
+
+            if (p.votes === null) {
+              cellContent = `<span class="w-6 h-6 rounded-full bg-amber-50 text-amber-500 border border-amber-200 font-bold inline-flex items-center justify-center text-xs shadow-2xs group-hover:border-indigo-300">⏳</span>`;
+            } else if (p.votes[key] === true) {
+              cellContent = `<span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 font-extrabold inline-flex items-center justify-center text-xs shadow-2xs group-hover:scale-110 transition-transform">⭕</span>`;
+            } else {
+              cellContent = `<span class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 font-bold inline-flex items-center justify-center text-xs group-hover:scale-110 transition-transform">❌</span>`;
+            }
+
+            rowHtml += `<td class="py-2 px-1 text-center border-r border-slate-50 cursor-pointer select-none hover:bg-indigo-50" onclick="handleAdminMatrixCellDirectToggle(${pIdx}, '${key}')" title="點擊切換 ${p.name} 在 ${formatDateMD(slotDate)} ${period === 'am' ? '上午' : '下午'} 的意向">
+                          ${cellContent}
+                        </td>`;
+          });
+        });
+
+        tr.innerHTML = rowHtml;
+        tbody.appendChild(tr);
+      });
+
+      // 底部總計列
+      let footHtml = `<tr><td class="py-2.5 px-3 text-left font-bold border-r border-slate-100">總計可出席</td>`;
+      poll.dates.forEach(slotDate => {
+        ['am', 'pm'].forEach(period => {
+          const key = `${slotDate}_${period}`;
+          const okCount = poll.participants.filter(p => p.votes && p.votes[key] === true).length;
+          footHtml += `<td class="py-2 px-1 text-center font-extrabold text-emerald-700 border-r border-emerald-100">${okCount}</td>`;
+        });
+      });
+      footHtml += `</tr>`;
+      tfoot.innerHTML = footHtml;
+    }
+
+    // 發起人指定開會時間
+    function handleDesignateSlot(slotKey) {
+      const poll = getCurrentPoll();
+      if (!poll) return;
+
+      const [datePart, periodPart] = slotKey.split('_');
+      const periodName = periodPart === 'am' ? '上午' : '下午';
+      const displayMD = formatDateMD(datePart);
+
+      if (poll.designatedSlot === slotKey) {
+        poll.designatedSlot = null;
+        showToast('已取消指定開會時間');
+      } else {
+        poll.designatedSlot = slotKey;
+        const now = new Date();
+        const nowStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        if (!poll.historyLogs) poll.historyLogs = [];
+        poll.historyLogs.push({
+          time: nowStr,
+          event: `發起人指定正式開會時間為：${displayMD} ${periodName}。`
+        });
+        showToast(`已成功指定 ${displayMD} ${periodName} 為正式開會時間！`, 'success');
+      }
+
+      saveStorage();
+      renderAdminDashboard();
+    }
+
+    // 後台直接點擊矩陣切換成員狀態
+    function handleAdminMatrixCellDirectToggle(pIdx, slotKey) {
+      const poll = getCurrentPoll();
+      if (!poll) return;
+
+      const participant = poll.participants[pIdx];
+      if (!participant) return;
+
+      if (!participant.votes) {
+        participant.votes = {};
+      }
+
+      const previous = participant.votes[slotKey];
+      const nextState = previous === true ? false : true;
+      participant.votes[slotKey] = nextState;
+
+      const now = new Date();
+      participant.submittedAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      if (!poll.historyLogs) poll.historyLogs = [];
+      const [datePart, periodPart] = slotKey.split('_');
+      poll.historyLogs.push({
+        time: participant.submittedAt,
+        event: `發起人於後台更新「${participant.name}」在 ${formatDateMD(datePart)} ${periodPart === 'am' ? '上午' : '下午'} 為 ${nextState ? '⭕ 可以' : '❌ 不行'}。`
+      });
+
+      saveStorage();
+      renderAdminDashboard();
+      showToast(`已更新「${participant.name}」為 ${nextState ? '⭕ 可以' : '❌ 不行'}`);
+    }
+
+    // 後台新增成員
+    function handleAdminAddParticipant() {
+      const poll = getCurrentPoll();
+      if (!poll) return;
+
+      const input = document.getElementById('adm-input-new-participant');
+      const rawText = input.value.trim();
+
+      if (!rawText) {
+        showToast('請輸入成員姓名', 'warning');
+        return;
+      }
+
+      const parsed = parseParticipantEntry(rawText);
+      const exists = poll.participants.some(p => p.name.toLowerCase() === parsed.name.toLowerCase());
+      if (exists) {
+        showToast(`名單中已有「${parsed.name}」！`, 'warning');
+        input.value = '';
+        return;
+      }
+
+      const now = new Date();
+      const nowStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      poll.participants.push({
+        name: parsed.name,
+        email: parsed.email,
+        votes: null,
+        submittedAt: null
+      });
+
+      if (!poll.historyLogs) poll.historyLogs = [];
+      poll.historyLogs.push({
+        time: nowStr,
+        event: `發起人於後台新增與會成員「${parsed.name}」${parsed.email ? ` (${parsed.email})` : ''}。`
+      });
+
+      saveStorage();
+      input.value = '';
+      showToast(`已成功新增與會成員「${parsed.name}」！`, 'success');
+      renderAdminDashboard();
+    }
+
+    // 開啟編輯會議資訊彈窗
+    function openEditMeetingModal() {
+      const poll = getCurrentPoll();
+      if (!poll) return;
+
+      document.getElementById('edit-title').value = poll.title;
+      document.getElementById('edit-host').value = poll.host;
+      document.getElementById('edit-location').value = poll.location || '';
+      document.getElementById('edit-notes').value = poll.notes || '';
+
+      document.getElementById('modal-edit-meeting').classList.remove('hidden');
+    }
+
+    function closeEditMeetingModal() {
+      document.getElementById('modal-edit-meeting').classList.add('hidden');
+    }
+
+    function handleSaveEditedMeeting(e) {
+      e.preventDefault();
+      const poll = getCurrentPoll();
+      if (!poll) return;
+
+      const title = document.getElementById('edit-title').value.trim();
+      const host = document.getElementById('edit-host').value.trim();
+      const location = document.getElementById('edit-location').value.trim();
+      const notes = document.getElementById('edit-notes').value.trim();
+
+      poll.title = title;
+      poll.host = host;
+      poll.location = location;
+      poll.notes = notes;
+
+      const now = new Date();
+      const nowStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      if (!poll.historyLogs) poll.historyLogs = [];
+      poll.historyLogs.push({
+        time: nowStr,
+        event: `發起人修改會議資訊：主題「${title}」、發起人「${host}」。`
+      });
+
+      saveStorage();
+      closeEditMeetingModal();
+      showToast('會議資訊已更新！', 'success');
+      renderAdminDashboard();
+    }
+
     function updateAdminCountdown() {
       const poll = getCurrentPoll();
       if (!poll) return;
@@ -921,8 +1407,7 @@
       }
     }
 
-    // 繪製出席熱力矩陣 (1~5 天 x 上下午最多 10 格)
-    function renderHeatmapGrid(poll) {
+    function renderAdminHeatmap(poll) {
       const container = document.getElementById('heatmap-grid');
       container.innerHTML = '';
 
@@ -932,13 +1417,12 @@
         { key: 'pm', label: '下午 (PM)' }
       ];
 
-      // 計算每一格的票數以找出最高票時段
       let maxVotes = -1;
       let slotStats = {};
 
-      poll.dates.forEach(date => {
+      poll.dates.forEach(slotDate => {
         periods.forEach(p => {
-          const slotKey = `${date}_${p.key}`;
+          const slotKey = `${slotDate}_${p.key}`;
           const okAttendees = poll.participants.filter(pt => pt.votes && pt.votes[slotKey] === true);
           const count = okAttendees.length;
           slotStats[slotKey] = {
@@ -952,17 +1436,17 @@
         });
       });
 
-      // 產生日期表頭
+      // 產生日期表頭 (月/日 呈現)
       const headerRow = document.createElement('div');
       headerRow.className = `grid gap-2 text-center text-xs font-semibold text-slate-500`;
       headerRow.style.gridTemplateColumns = `80px repeat(${poll.dates.length}, minmax(130px, 1fr))`;
 
-      headerRow.innerHTML = `<div class="py-2">時段</div>` + poll.dates.map(d => {
-        const dateObj = new Date(d);
+      headerRow.innerHTML = `<div class="py-2">時段</div>` + poll.dates.map(slotDate => {
+        const dateObj = new Date(slotDate);
         const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
         const dayStr = dayNames[dateObj.getDay()];
         return `<div class="py-2 bg-slate-50 rounded-xl border border-slate-100">
-                  <div class="text-slate-800 font-bold">${d}</div>
+                  <div class="text-slate-800 font-bold">${formatDateMD(slotDate)}</div>
                   <div class="text-[11px] text-slate-400">星期${dayStr}</div>
                 </div>`;
       }).join('');
@@ -976,13 +1460,12 @@
 
         let cellsHtml = `<div class="flex items-center justify-center font-bold text-xs text-slate-600 bg-slate-50 rounded-xl border border-slate-100">${period.label}</div>`;
 
-        poll.dates.forEach(date => {
-          const slotKey = `${date}_${period.key}`;
+        poll.dates.forEach(slotDate => {
+          const slotKey = `${slotDate}_${period.key}`;
           const stat = slotStats[slotKey];
           const isBest = maxVotes > 0 && stat.count === maxVotes;
           const is100 = totalVoted > 0 && stat.count === totalVoted;
 
-          // 計算熱力背景強度
           let bgClass = 'bg-white border-slate-200 hover:border-slate-300';
           let textColor = 'text-slate-700';
           let badgeHtml = '';
@@ -1015,15 +1498,12 @@
       });
     }
 
-    // 渲染管理後台受邀者名單表格
     function renderAdminParticipantTable(poll) {
       const tbody = document.getElementById('adm-participants-tbody');
       tbody.innerHTML = '';
-      const baseUrl = getShareableBaseUrl();
 
       poll.participants.forEach(p => {
         const isFilled = p.votes !== null;
-        const personalUrl = `${baseUrl}?poll=${poll.id}&token=${p.token}`;
 
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50/80 transition-colors';
@@ -1040,8 +1520,8 @@
             ${p.submittedAt ? p.submittedAt : '—'}
           </td>
           <td class="py-3 px-3 text-right">
-            <button onclick="copyParticipantLink('${p.name}', '${personalUrl}')" class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-colors inline-flex items-center gap-1">
-              <i class="fa-solid fa-link text-indigo-500"></i> 複製專屬連結
+            <button onclick="navigateTo('?poll=${poll.id}')" class="text-xs px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium transition-colors inline-flex items-center gap-1">
+              <i class="fa-solid fa-eye text-indigo-500"></i> 前台查看回覆
             </button>
           </td>
         `;
@@ -1049,31 +1529,29 @@
       });
     }
 
-    function copyParticipantLink(name, url) {
-      copyText(url, `已複製「${name}」專屬免登入填寫連結！`);
+    function copySingleMeetingUrl() {
+      const poll = getCurrentPoll();
+      if (!poll) return;
+      const url = getSingleMeetingUrl(poll.id);
+      copyText(url, '已複製會議專屬調查網址！');
     }
 
-    // 一鍵複製 LINE/Teams 全員邀請訊息範本
     function copyAllInviteMessage() {
       const poll = getCurrentPoll();
       if (!poll) return;
 
-      const baseUrl = getShareableBaseUrl();
-      let text = `📢 【會議時間調查邀請】\n\n`;
+      const singleUrl = getSingleMeetingUrl(poll.id);
+      let text = `📢 【Time Hunter 會議時間調查邀請】\n\n`;
       text += `大家好！由【${poll.host}】發起「${poll.title}」的時間調查。\n`;
       if (poll.location) text += `📍 開會地點：${poll.location}\n`;
       text += `⏰ 調查截止時間：${poll.deadline.replace('T', ' ')}\n`;
-      text += `\n請各位同仁點開您個人的免登入專屬連結，勾選方便的時段：\n`;
+      text += `\n請大家點開下方專屬調查網址，直接在「瞧瞧大家的回覆」表格中點擊勾選方便時段：\n`;
+      text += `👉 填寫網址：${singleUrl}\n\n`;
+      text += `感謝大家的撥冗協助！`;
 
-      poll.participants.forEach(p => {
-        text += `👉 ${p.name}：${baseUrl}?poll=${poll.id}&token=${p.token}\n`;
-      });
-
-      text += `\n感謝大家的撥冗協助！`;
       copyText(text, '已複製全體 LINE 邀請訊息範本！可直接貼進通訊軟體');
     }
 
-    // 一鍵複製催填訊息
     function copyReminderMessage() {
       const poll = getCurrentPoll();
       if (!poll) return;
@@ -1084,30 +1562,58 @@
         return;
       }
 
-      const baseUrl = getShareableBaseUrl();
-      let text = `⏰ 【會議時間調查 - 溫馨催填提醒】\n\n`;
-      text += `「${poll.title}」調查即將截止（${poll.deadline.replace('T', ' ')}）！\n`;
-      text += `目前尚有同仁未完成填寫，請點擊個人連結花 10 秒勾選：\n\n`;
+      const singleUrl = getSingleMeetingUrl(poll.id);
+      let text = `⏰ 【Time Hunter 會議時間調查 - 溫馨催填提醒】\n\n`;
+      text += `大家好！由【${poll.host}】發起的「${poll.title}」時間調查即將截止（${poll.deadline.replace('T', ' ')}）。\n\n`;
+      text += `若您尚未完成時間意向勾選，敬請點擊下方專屬網址花 10 秒在表格點選您方便的時段：\n`;
+      text += `👉 ${singleUrl}\n\n`;
+      text += `感謝大家的配合與協助，以便盡速拍板開會時間！`;
 
-      unresponded.forEach(p => {
-        text += `👉 ${p.name}：${baseUrl}?poll=${poll.id}&token=${p.token}\n`;
-      });
-
-      text += `\n感謝配合，以便盡速拍板開會時間！`;
-      copyText(text, '已複製催填名單與訊息！');
+      copyText(text, '已複製催填訊息！');
     }
 
-    function togglePollStatus() {
+    function openEmailReminder() {
       const poll = getCurrentPoll();
       if (!poll) return;
 
-      if (poll.status === 'closed') {
-        poll.status = 'active';
-        showToast('已重新開放前台投票');
-      } else {
-        poll.status = 'closed';
-        showToast('已手動將會議截止轉為唯讀歷史紀錄');
+      const singleUrl = getSingleMeetingUrl(poll.id);
+      const subject = encodeURIComponent(`【溫馨提醒】${poll.title} 會議時間調查即將截止`);
+      const body = encodeURIComponent(
+        `大家好！\n\n由【${poll.host}】發起的「${poll.title}」會議時間調查即將截止（${poll.deadline.replace('T', ' ')}）。\n\n若您尚未完成時間意向勾選，敬請撥空點擊下方網址花 10 秒在表格點選您方便的時段：\n👉 ${singleUrl}\n\n感謝大家的配合與協助！`
+      );
+
+      // 自動篩選尚未填寫且有登記 Email 的成員信箱
+      const unrespondedEmails = (poll.participants || [])
+        .filter(p => p.votes === null && p.email)
+        .map(p => p.email.trim());
+
+      let mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
+      if (unrespondedEmails.length > 0) {
+        mailtoUrl = `mailto:${encodeURIComponent(unrespondedEmails.join(','))}?subject=${subject}&body=${body}`;
       }
+
+      window.location.href = mailtoUrl;
+    }
+
+    function togglePollStatus() {
+    // 檢查並過濾超過一年的過期會議記錄
+    function pruneOldPolls() {
+      const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      let changed = false;
+
+      Object.keys(appState.polls).forEach(id => {
+        const p = appState.polls[id];
+        if (id === DEMO_POLL.id) return; // 確保示範會議不受清理影響
+        const recordTime = new Date(p.createdAt || p.deadline || Date.now()).getTime();
+        if (now - recordTime > ONE_YEAR_MS) {
+          delete appState.polls[id];
+          changed = true;
+        }
+      });
+
+      if (changed) saveStorage();
+    }
       saveStorage();
       renderAdminDashboard();
     }
@@ -1130,175 +1636,474 @@
       if (!newDl) return;
 
       poll.deadline = newDl;
-      poll.status = 'active'; // 延期自動重新開放
+      poll.status = 'active';
+
+      const now = new Date();
+      const nowStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      if (!poll.historyLogs) poll.historyLogs = [];
+      poll.historyLogs.push({ time: nowStr, event: `發起人將截止時間調整為：${newDl.replace('T', ' ')}。` });
+
       saveStorage();
       closeExtendModal();
       showToast('截止時間已更新並重新開放調查！');
       renderAdminDashboard();
     }
 
-    // 受邀者投票視圖渲染
-    let currentParticipantVotes = {};
+    function openHistoryModal() {
+      pruneOldPolls();
+      renderHistoryList();
+      backToHistoryList();
+      document.getElementById('modal-history').classList.remove('hidden');
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('modal-history').classList.add('hidden');
+    }
+
+    function renderHistoryList() {
+      const container = document.getElementById('history-view-list');
+      container.innerHTML = '';
+
+      const pollsList = Object.values(appState.polls || {});
+      if (pollsList.length === 0) {
+        container.innerHTML = '<div class="py-8 text-center text-slate-400 text-xs">目前尚無任何會議紀錄</div>';
+        return;
+      }
+
+      // 依建立時間倒序排序 (最新在最上面)
+      pollsList.sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.deadline || 0).getTime();
+        const timeB = new Date(b.createdAt || b.deadline || 0).getTime();
+        return timeB - timeA;
+      });
+
+      pollsList.forEach(poll => {
+        const isCurrent = poll.id === appState.currentPollId;
+        const isClosed = poll.status === 'closed' || new Date(poll.deadline) <= new Date();
+        const filledCount = (poll.participants || []).filter(p => p.votes !== null).length;
+        const totalCount = (poll.participants || []).length;
+        const dateStr = poll.createdAt ? poll.createdAt.slice(0, 10) : '近期建立';
+
+        const item = document.createElement('div');
+        item.className = `p-3.5 rounded-xl border transition-all cursor-pointer hover:border-indigo-300 hover:shadow-xs flex items-center justify-between gap-3 ${isCurrent ? 'bg-indigo-50/50 border-indigo-200' : 'bg-slate-50/70 border-slate-200'}`;
+        item.onclick = () => showHistoryDetail(poll.id);
+
+        item.innerHTML = `
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-bold text-slate-800 truncate">${poll.title}</span>
+              ${isCurrent ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700 font-bold shrink-0">當前</span>' : ''}
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${isClosed ? 'bg-slate-200 text-slate-600' : 'bg-emerald-100 text-emerald-800'}">
+                ${isClosed ? '已截止' : '進行中'}
+              </span>
+            </div>
+            <div class="text-[11px] text-slate-500 flex items-center gap-3">
+              <span><i class="fa-solid fa-user-tie text-slate-400 mr-1"></i>${poll.host}</span>
+              <span><i class="fa-regular fa-calendar text-slate-400 mr-1"></i>${dateStr}</span>
+              <span><i class="fa-solid fa-users text-slate-400 mr-1"></i>填寫：${filledCount}/${totalCount}</span>
+            </div>
+          </div>
+          <div class="text-xs text-indigo-600 font-medium shrink-0 flex items-center gap-1">
+            <span>詳情</span> <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function showHistoryDetail(pollId) {
+      const poll = appState.polls[pollId];
+      if (!poll) return;
+
+      document.getElementById('history-view-list').classList.add('hidden');
+      document.getElementById('history-view-detail').classList.remove('hidden');
+
+      const enterBtn = document.getElementById('btn-history-enter-poll');
+      enterBtn.onclick = () => {
+        appState.currentPollId = poll.id;
+        safeSession.setItem('AUTH_' + poll.id, 'true');
+        navigateTo(`?poll=${poll.id}&admin=1`);
+        closeHistoryModal();
+        showToast(`已切換至「${poll.title}」後台`);
+      };
+
+      renderHistoryTimeline(poll);
+    }
+
+    function backToHistoryList() {
+      document.getElementById('history-view-list').classList.remove('hidden');
+      document.getElementById('history-view-detail').classList.add('hidden');
+    }
+
+    function renderHistoryTimeline(poll) {
+      const card = document.getElementById('history-poll-card');
+      const isClosed = poll.status === 'closed' || new Date(poll.deadline) <= new Date();
+      const createTimeStr = poll.createdAt ? poll.createdAt.replace('T', ' ').slice(0, 16) : '先前建立';
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-800">${poll.title}</span>
+          <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold ${isClosed ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800'}">
+            ${isClosed ? '已截止 (唯讀)' : '調查進行中'}
+          </span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+          <div><i class="fa-solid fa-user-tie mr-1 text-slate-400"></i>發起人：${poll.host}</div>
+          <div><i class="fa-solid fa-calendar-plus mr-1 text-slate-400"></i>建立時間：${createTimeStr}</div>
+          <div><i class="fa-regular fa-clock mr-1 text-amber-500"></i>截止時間：${poll.deadline.replace('T', ' ')}</div>
+          <div><i class="fa-solid fa-users mr-1 text-indigo-500"></i>名單人數：${poll.participants.length} 人</div>
+        </div>
+      `;
+
+      const container = document.getElementById('history-logs-container');
+      container.innerHTML = '';
+
+      const logs = poll.historyLogs || [
+        { time: '初始', event: '會議已建立' }
+      ];
+
+      logs.slice().reverse().forEach(log => {
+        const div = document.createElement('div');
+        div.className = 'flex items-start gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100';
+        div.innerHTML = `
+          <div class="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
+          <div>
+            <span class="font-mono text-slate-400 text-[10px] block">${log.time}</span>
+            <span class="text-slate-700 font-medium">${log.event}</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function updateParticipantLiveCountdown() {
+      const poll = getCurrentPoll();
+      if (!poll) return;
+
+      const diff = new Date(poll.deadline) - new Date();
+      const statusBadge = document.getElementById('pt-countdown-status-badge');
+      const detailText = document.getElementById('pt-deadline-detail');
+      const isClosed = poll.status === 'closed';
+
+      if (detailText) {
+        detailText.innerHTML = `<i class="fa-regular fa-clock mr-1 text-slate-400"></i> 截止時間：<span class="font-semibold text-white font-mono">${poll.deadline.replace('T', ' ')}</span>`;
+      }
+
+      if (isClosed || diff <= 0) {
+        document.getElementById('cd-days').innerText = '00';
+        document.getElementById('cd-hours').innerText = '00';
+        document.getElementById('cd-mins').innerText = '00';
+        document.getElementById('cd-secs').innerText = '00';
+        if (statusBadge) {
+          statusBadge.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/30';
+          statusBadge.innerText = '已截止 (唯讀)';
+        }
+        return;
+      }
+
+      if (statusBadge) {
+        statusBadge.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30';
+        statusBadge.innerText = '倒數進行中';
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const mins = Math.floor((diff / (1000 * 60)) % 60);
+      const secs = Math.floor((diff / 1000) % 60);
+
+      document.getElementById('cd-days').innerText = String(days).padStart(2, '0');
+      document.getElementById('cd-hours').innerText = String(hours).padStart(2, '0');
+      document.getElementById('cd-mins').innerText = String(mins).padStart(2, '0');
+      document.getElementById('cd-secs').innerText = String(secs).padStart(2, '0');
+    }
 
     function renderParticipantView() {
       const poll = getCurrentPoll();
       if (!poll) return;
 
-      const participant = poll.participants.find(p => p.token === appState.currentToken);
-      if (!participant) {
-        document.getElementById('view-participant').innerHTML = `
-          <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm text-center border border-slate-200">
-            <i class="fa-solid fa-user-xmark text-4xl text-rose-500 mb-3"></i>
-            <h2 class="text-xl font-bold text-slate-800 mb-1">查無受邀者資料</h2>
-            <p class="text-xs text-slate-500 mb-4">專屬 Token 不存在或連結失效，請洽發起人重新取得邀請網址。</p>
-            <button onclick="navigateTo('?create=1')" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold">回首頁</button>
-          </div>
-        `;
-        return;
-      }
-
-      // 載入基本資訊
       document.getElementById('pt-host-name').innerText = poll.host;
-      document.getElementById('pt-user-name').innerText = participant.name;
       document.getElementById('pt-meeting-title').innerText = poll.title;
       document.getElementById('pt-meeting-notes').innerText = poll.notes || '無特殊備註。';
-      document.getElementById('pt-deadline-text').innerHTML = `<i class="fa-regular fa-clock mr-1"></i> 調查截止：${poll.deadline.replace('T', ' ')}`;
-      document.getElementById('pt-location-text').innerHTML = `<i class="fa-solid fa-location-dot mr-1"></i> 地點：${poll.location || '線上/未指定'}`;
+      
+      const deadlineEl = document.getElementById('pt-deadline-text');
+      if (deadlineEl) {
+        deadlineEl.innerHTML = `<i class="fa-regular fa-clock text-amber-500 mr-1.5"></i> 調查截止：${poll.deadline.replace('T', ' ')}`;
+      }
+      document.getElementById('pt-location-text').innerHTML = `<i class="fa-solid fa-location-dot text-indigo-500 mr-1.5"></i> 地點：${poll.location || '線上/未指定'}`;
 
-      // 載入先前的投票選項 (覆蓋/回顯)
-      currentParticipantVotes = participant.votes ? { ...participant.votes } : {};
-      document.getElementById('pt-last-saved-time').innerText = participant.submittedAt ? `上次更新：${participant.submittedAt}` : '尚未送出填寫';
-
-      // 判斷是否逾期鎖定
       const isExpired = new Date(poll.deadline) <= new Date() || poll.status === 'closed';
       const lockedBanner = document.getElementById('pt-locked-banner');
-      const submitBtn = document.getElementById('btn-submit-vote');
       const statusPill = document.getElementById('pt-status-pill');
+      const unlistedBox = document.getElementById('unlisted-user-box');
 
       if (isExpired) {
         lockedBanner.classList.remove('hidden');
         document.getElementById('pt-locked-host').innerText = poll.host;
-        submitBtn.disabled = true;
-        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        submitBtn.innerHTML = '<i class="fa-solid fa-lock"></i> <span>已截止鎖定</span>';
-        statusPill.className = 'text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700';
-        statusPill.innerText = '已截止 (唯讀)';
+        statusPill.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700';
+        statusPill.innerText = '已截止 (歷史紀錄)';
+        if (unlistedBox) unlistedBox.classList.add('hidden');
       } else {
         lockedBanner.classList.add('hidden');
-        submitBtn.disabled = false;
-        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>確認送出時間意向</span>';
-        statusPill.className = 'text-xs font-medium px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+        statusPill.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
         statusPill.innerText = '調查進行中';
+        if (unlistedBox) unlistedBox.classList.remove('hidden');
       }
 
-      // 繪製 1~5 日期上下午大按鈕矩陣
-      renderParticipantSlotButtons(poll, isExpired);
+      // 發起人指定開會時間橫幅展示
+      const designatedNotice = document.getElementById('pt-designated-notice');
+      if (poll.designatedSlot) {
+        const [dPart, pPart] = poll.designatedSlot.split('_');
+        const periodText = pPart === 'am' ? '上午 (AM)' : '下午 (PM)';
+        document.getElementById('pt-designated-slot-text').innerHTML = `
+          <i class="fa-regular fa-calendar-check text-cyan-300 mr-1.5"></i> ${formatDateMD(dPart)} ${periodText}
+        `;
+        designatedNotice.classList.remove('hidden');
+      } else {
+        designatedNotice.classList.add('hidden');
+      }
+
+      updateParticipantLiveCountdown();
+      renderLineSlotSummaryCards(poll);
+      renderLineScheduleMatrix(poll, isExpired);
     }
 
-    function renderParticipantSlotButtons(poll, isExpired) {
-      const container = document.getElementById('pt-slots-container');
-      container.innerHTML = '';
+    function renderLineSlotSummaryCards(poll) {
+      const grid = document.getElementById('pt-slots-summary-grid');
+      grid.innerHTML = '';
+
+      const totalResponded = poll.participants.filter(p => p.votes !== null).length;
+      document.getElementById('pt-total-response-badge').innerText = `已回覆：${totalResponded} / ${poll.participants.length} 人`;
+
+      let maxVotes = 0;
+      let slotVotes = {};
+      poll.dates.forEach(slotDate => {
+        ['am', 'pm'].forEach(period => {
+          const key = `${slotDate}_${period}`;
+          const count = poll.participants.filter(p => p.votes && p.votes[key] === true).length;
+          slotVotes[key] = count;
+          if (count > maxVotes) maxVotes = count;
+        });
+      });
 
       const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
 
-      poll.dates.forEach(date => {
-        const dateObj = new Date(date);
-        const dayStr = dayNames[dateObj.getDay()];
+      poll.dates.forEach(slotDate => {
+        const dObj = new Date(slotDate);
+        const dayStr = dayNames[dObj.getDay()];
+        const displayMD = formatDateMD(slotDate);
+        ['am', 'pm'].forEach(period => {
+          const key = `${slotDate}_${period}`;
+          const count = slotVotes[key] || 0;
+          const isBest = maxVotes > 0 && count === maxVotes;
+          const isDesignated = poll.designatedSlot === key;
 
-        const card = document.createElement('div');
-        card.className = 'p-4 rounded-xl border border-slate-200 bg-slate-50/60';
+          const card = document.createElement('div');
+          let cardStyle = 'bg-slate-50/70 border-slate-200';
+          if (isDesignated) {
+            cardStyle = 'bg-cyan-50 border-cyan-400 ring-2 ring-cyan-300 shadow-md';
+          } else if (isBest) {
+            cardStyle = 'bg-emerald-500/10 border-emerald-500 shadow-sm';
+          }
 
-        const amKey = `${date}_am`;
-        const pmKey = `${date}_pm`;
-
-        const isAmOk = currentParticipantVotes[amKey] === true;
-        const isPmOk = currentParticipantVotes[pmKey] === true;
-
-        card.innerHTML = `
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-              <span class="font-bold text-slate-900 text-sm">${date}</span>
-              <span class="text-xs text-slate-500 font-medium">(週${dayStr})</span>
+          card.className = `p-3 rounded-xl border text-center flex flex-col justify-between transition-all ${cardStyle}`;
+          card.innerHTML = `
+            <div>
+              <div class="text-xs font-bold text-slate-800">${displayMD} (${dayStr})</div>
+              <div class="text-[11px] font-medium text-slate-500">${period === 'am' ? '上午' : '下午'}</div>
             </div>
-            <span class="text-[11px] text-slate-400">點擊按鈕切換出席意向</span>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <!-- 上午按鈕 -->
-            <button type="button" ${isExpired ? 'disabled' : ''} onclick="toggleSlotVote('${amKey}')" id="btn-slot-${amKey}" class="slot-card p-3 rounded-xl border text-center flex items-center justify-between font-medium text-xs sm:text-sm ${isAmOk ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}">
-              <span>上午 (AM)</span>
-              <span>${isAmOk ? '<i class="fa-solid fa-circle-check text-base"></i>' : '<i class="fa-regular fa-circle text-slate-300 text-base"></i>'}</span>
-            </button>
-
-            <!-- 下午按鈕 -->
-            <button type="button" ${isExpired ? 'disabled' : ''} onclick="toggleSlotVote('${pmKey}')" id="btn-slot-${pmKey}" class="slot-card p-3 rounded-xl border text-center flex items-center justify-between font-medium text-xs sm:text-sm ${isPmOk ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}">
-              <span>下午 (PM)</span>
-              <span>${isPmOk ? '<i class="fa-solid fa-circle-check text-base"></i>' : '<i class="fa-regular fa-circle text-slate-300 text-base"></i>'}</span>
-            </button>
-          </div>
-        `;
-        container.appendChild(card);
+            <div class="my-2">
+              <span class="text-lg font-extrabold ${isDesignated ? 'text-cyan-700' : isBest ? 'text-emerald-700' : 'text-slate-700'}">${count}</span>
+              <span class="text-xs text-slate-400">人 ⭕</span>
+            </div>
+            ${isDesignated 
+              ? '<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-600 text-white">🎯 發起人指定</span>' 
+              : isBest 
+                ? '<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white">👑 最佳</span>' 
+                : '<span class="text-[10px] text-slate-400">候選時段</span>'}
+          `;
+          grid.appendChild(card);
+        });
       });
     }
 
-    function toggleSlotVote(slotKey) {
-      currentParticipantVotes[slotKey] = !currentParticipantVotes[slotKey];
-      const poll = getCurrentPoll();
-      renderParticipantSlotButtons(poll, false);
-    }
+    function renderLineScheduleMatrix(poll, isExpired) {
+      const thead = document.getElementById('line-matrix-thead');
+      const tbody = document.getElementById('line-matrix-tbody');
+      const tfoot = document.getElementById('line-matrix-tfoot');
 
-    function selectAllVotes(status) {
-      const poll = getCurrentPoll();
-      if (!poll) return;
-      poll.dates.forEach(d => {
-        currentParticipantVotes[`${d}_am`] = status;
-        currentParticipantVotes[`${d}_pm`] = status;
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+      tfoot.innerHTML = '';
+
+      const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+
+      // 表頭 (以 月/日 呈現)
+      let ths = `<tr class="border-b border-slate-200"><th class="py-2.5 px-3 text-left w-40 bg-slate-100/80">與會者姓名</th>`;
+      poll.dates.forEach(slotDate => {
+        const dObj = new Date(slotDate);
+        const dayStr = dayNames[dObj.getDay()];
+        const displayMD = formatDateMD(slotDate);
+        ths += `<th class="py-2 px-2 text-center" colspan="2">
+                  <div class="font-bold text-slate-800">${displayMD}</div>
+                  <div class="text-[10px] text-slate-400 font-normal">週${dayStr}</div>
+                </th>`;
       });
-      renderParticipantSlotButtons(poll, false);
-      showToast(status ? '已將所有時段標為可以出席' : '已清空所有勾選');
+      ths += `</tr>`;
+
+      // 上下午子表頭
+      ths += `<tr class="text-[11px] bg-slate-50 text-slate-500 border-b border-slate-200"><th class="py-1 px-3 text-left font-normal text-slate-400">點擊右側時段切換</th>`;
+      poll.dates.forEach(() => {
+        ths += `<th class="py-1 px-1.5 text-center font-medium">上午</th>`;
+        ths += `<th class="py-1 px-1.5 text-center font-medium">下午</th>`;
+      });
+      ths += `</tr>`;
+      thead.innerHTML = ths;
+
+      // 內容列表 (每位成員的回覆列 - 支援直接點擊格子編修)
+      poll.participants.forEach((p, pIdx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-indigo-50/30 transition-colors group';
+
+        let rowHtml = `<td class="py-2.5 px-3 text-left font-bold text-slate-900 border-r border-slate-100 flex items-center justify-between">
+                         <span class="truncate">${p.name}</span>
+                         ${p.votes === null ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-700 font-normal shrink-0 ml-1">未填</span>' : ''}
+                       </td>`;
+
+        poll.dates.forEach(slotDate => {
+          ['am', 'pm'].forEach(period => {
+            const key = `${slotDate}_${period}`;
+            let cellContent = '';
+
+            if (p.votes === null) {
+              cellContent = `<span class="w-6 h-6 rounded-full bg-amber-50 text-amber-500 border border-amber-200 font-bold inline-flex items-center justify-center text-xs shadow-2xs group-hover:border-indigo-300">⏳</span>`;
+            } else if (p.votes[key] === true) {
+              cellContent = `<span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 font-extrabold inline-flex items-center justify-center text-xs shadow-2xs group-hover:scale-110 transition-transform">⭕</span>`;
+            } else {
+              cellContent = `<span class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 font-bold inline-flex items-center justify-center text-xs group-hover:scale-110 transition-transform">❌</span>`;
+            }
+
+            if (isExpired) {
+              rowHtml += `<td class="py-2 px-1 text-center border-r border-slate-50 cursor-not-allowed opacity-80">${cellContent}</td>`;
+            } else {
+              rowHtml += `<td class="py-2 px-1 text-center border-r border-slate-50 cursor-pointer select-none hover:bg-indigo-50" onclick="handleMatrixCellDirectToggle(${pIdx}, '${key}')" title="點擊切換 ${p.name} 在 ${formatDateMD(slotDate)} ${period === 'am' ? '上午' : '下午'} 的回覆">
+                            ${cellContent}
+                          </td>`;
+            }
+          });
+        });
+
+        tr.innerHTML = rowHtml;
+        tbody.appendChild(tr);
+      });
+
+      // 底部總計列
+      let footHtml = `<tr><td class="py-2.5 px-3 text-left font-bold border-r border-slate-100">總計可出席</td>`;
+      poll.dates.forEach(slotDate => {
+        ['am', 'pm'].forEach(period => {
+          const key = `${slotDate}_${period}`;
+          const okCount = poll.participants.filter(p => p.votes && p.votes[key] === true).length;
+          footHtml += `<td class="py-2 px-1 text-center font-extrabold text-emerald-700 border-r border-emerald-100">${okCount}</td>`;
+        });
+      });
+      footHtml += `</tr>`;
+      tfoot.innerHTML = footHtml;
     }
 
-    function handleSubmitVote() {
+    function handleMatrixCellDirectToggle(pIdx, slotKey) {
       const poll = getCurrentPoll();
       if (!poll) return;
 
-      const participant = poll.participants.find(p => p.token === appState.currentToken);
-      if (!participant) return;
-
-      // 檢查是否已逾期
       if (new Date(poll.deadline) <= new Date() || poll.status === 'closed') {
-        showToast('抱歉，此會議調查已截止，無法送出', 'warning');
+        showToast('調查已截止，無法修改時間', 'warning');
         return;
       }
 
-      participant.votes = { ...currentParticipantVotes };
+      const participant = poll.participants[pIdx];
+      if (!participant) return;
+
+      if (!participant.votes) {
+        participant.votes = {};
+      }
+
+      const previous = participant.votes[slotKey];
+      const nextState = previous === true ? false : true;
+      participant.votes[slotKey] = nextState;
+
       const now = new Date();
       participant.submittedAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
+      if (!poll.historyLogs) poll.historyLogs = [];
+      const [datePart, periodPart] = slotKey.split('_');
+      poll.historyLogs.push({
+        time: participant.submittedAt,
+        event: `${participant.name} 在矩陣圖直接調整 ${formatDateMD(datePart)} ${periodPart === 'am' ? '上午' : '下午'} 為 ${nextState ? '⭕ 可以' : '❌ 不行'}。`
+      });
+
       saveStorage();
-      showToast('時間意向已成功儲存！截止前可隨時覆蓋修改', 'success');
-      document.getElementById('pt-last-saved-time').innerText = `上次更新：${participant.submittedAt}`;
+      renderParticipantView();
+      showToast(`已更新「${participant.name}」在 ${formatDateMD(datePart)} ${periodPart === 'am' ? '上午' : '下午'} 為 ${nextState ? '⭕ 可以' : '❌ 不行'}`);
     }
 
-    // 點擊矩陣時段檢視詳細名單 Modal
+    function handleAddUnlistedParticipant() {
+      const poll = getCurrentPoll();
+      if (!poll) return;
+
+      if (new Date(poll.deadline) <= new Date() || poll.status === 'closed') {
+        showToast('調查已截止，無法新增名單', 'warning');
+        return;
+      }
+
+      const input = document.getElementById('input-new-participant');
+      const name = input.value.trim();
+
+      if (!name) {
+        showToast('請輸入您的姓名', 'warning');
+        return;
+      }
+
+      const exists = poll.participants.some(p => p.name.toLowerCase() === name.toLowerCase());
+      if (exists) {
+        showToast(`名單中已有「${name}」，您可以直接點擊上方表格中您的列進行編修！`, 'warning');
+        input.value = '';
+        return;
+      }
+
+      const now = new Date();
+      const nowStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      poll.participants.push({
+        name: name,
+        votes: null,
+        submittedAt: null
+      });
+
+      if (!poll.historyLogs) poll.historyLogs = [];
+      poll.historyLogs.push({
+        time: nowStr,
+        event: `新成員「${name}」自行加入本會議調查名單。`
+      });
+
+      saveStorage();
+      input.value = '';
+      showToast(`歡迎 ${name} 加入！請直接在上方表格點擊格子勾選您的方便時間。`, 'success');
+      renderParticipantView();
+    }
+
     function openSlotDetailModal(slotKey) {
       const poll = getCurrentPoll();
       if (!poll) return;
 
       appState.selectedSlotDetailKey = slotKey;
-      const [date, period] = slotKey.split('_');
+      const [slotDateStr, period] = slotKey.split('_');
       const periodName = period === 'am' ? '上午' : '下午';
 
       const okParticipants = poll.participants.filter(p => p.votes && p.votes[slotKey] === true);
       const noParticipants = poll.participants.filter(p => p.votes && !p.votes[slotKey]);
       const unresponded = poll.participants.filter(p => p.votes === null);
 
-      document.getElementById('slot-modal-title').innerText = `${date} ${periodName} 出席名單明細`;
+      document.getElementById('slot-modal-title').innerText = `${formatDateMD(slotDateStr)} ${periodName} 出席名單明細`;
       document.getElementById('slot-modal-stats').innerText = `${okParticipants.length} / ${poll.participants.length} 人可出席 (${Math.round((okParticipants.length / (poll.participants.length || 1)) * 100)}%)`;
 
-      // 綠色出席標籤
       const okContainer = document.getElementById('slot-modal-ok-list');
       okContainer.innerHTML = '';
       document.getElementById('slot-modal-ok-count').innerText = okParticipants.length;
@@ -1313,7 +2118,6 @@
         });
       }
 
-      // 灰色/不克出席標籤
       const noContainer = document.getElementById('slot-modal-no-list');
       noContainer.innerHTML = '';
       const allNegative = [...noParticipants, ...unresponded];
@@ -1342,7 +2146,6 @@
       openFinalizeModal(appState.selectedSlotDetailKey);
     }
 
-    // 會議通知生成與互動預覽 (Modal)
     function openFinalizeModal(preferredSlotKey = null) {
       const poll = getCurrentPoll();
       if (!poll) return;
@@ -1350,28 +2153,26 @@
       const selectEl = document.getElementById('modal-select-final-slot');
       selectEl.innerHTML = '';
 
-      // 計算各時段票數排序
       let slotOptions = [];
-      poll.dates.forEach(date => {
+      poll.dates.forEach(slotDate => {
         ['am', 'pm'].forEach(p => {
-          const sKey = `${date}_${p}`;
+          const sKey = `${slotDate}_${p}`;
           const okCount = poll.participants.filter(pt => pt.votes && pt.votes[sKey] === true).length;
           slotOptions.push({
             key: sKey,
-            date,
+            dateStr: slotDate,
             period: p === 'am' ? '上午' : '下午',
             count: okCount
           });
         });
       });
 
-      // 依票數由大到小排序
       slotOptions.sort((a, b) => b.count - a.count);
 
       slotOptions.forEach(opt => {
         const option = document.createElement('option');
         option.value = opt.key;
-        option.innerText = `${opt.date} ${opt.period}（${opt.count} 人可出席）${opt.count === slotOptions[0].count && opt.count > 0 ? ' ★ 最高票' : ''}`;
+        option.innerText = `${formatDateMD(opt.dateStr)} ${opt.period}（${opt.count} 人可出席）${opt.count === slotOptions[0].count && opt.count > 0 ? ' ★ 最高票' : ''}`;
         selectEl.appendChild(option);
       });
 
@@ -1411,19 +2212,20 @@
       const chosenSlotKey = document.getElementById('modal-select-final-slot').value;
       if (!chosenSlotKey) return;
 
-      const [date, pKey] = chosenSlotKey.split('_');
+      const [targetDateStr, pKey] = chosenSlotKey.split('_');
       const periodName = pKey === 'am' ? '上午 (09:30 - 12:00)' : '下午 (14:00 - 17:00)';
+      const displayMD = formatDateMD(targetDateStr);
 
       const okPeople = poll.participants.filter(pt => pt.votes && pt.votes[chosenSlotKey] === true).map(pt => pt.name);
       const absentPeople = poll.participants.filter(pt => !pt.votes || !pt.votes[chosenSlotKey]).map(pt => pt.name);
 
       let text = '';
       if (appState.currentNoticeFormat === 'line') {
-        text = `📢 【正式會議時間定案通知】\n\n`;
+        text = `📢 【Time Hunter 會議時間定案通知】\n\n`;
         text += `各位同仁好，感謝大家撥冗參與時間調查！本次會議已敲定最佳時段：\n\n`;
         text += `📌 會議主題：${poll.title}\n`;
         text += `👤 發起人：${poll.host}\n`;
-        text += `📅 敲定時間：${date} ${periodName}\n`;
+        text += `📅 敲定時間：${displayMD} ${periodName}\n`;
         text += `📍 地點/連結：${poll.location || '請洽發起人'}\n`;
         text += `👥 確認出席名單 (${okPeople.length}位)：\n${okPeople.join('、')}\n`;
         if (absentPeople.length > 0) {
@@ -1438,7 +2240,7 @@
         text += `受邀出席各位同仁 您好：\n\n`;
         text += `經多方時間協調與意向調查，由【${poll.host}】所發起之「${poll.title}」已正式敲定開會時間。\n\n`;
         text += `【會議詳細資訊】\n`;
-        text += `■ 會議時間：${date} ${periodName}\n`;
+        text += `■ 會議時間：${displayMD} ${periodName}\n`;
         text += `■ 會議地點：${poll.location || '實體或線上會議室'}\n`;
         text += `■ 主持人 / 發起人：${poll.host}\n`;
         text += `■ 出席人員：${okPeople.join('、 ')}\n`;
@@ -1463,52 +2265,13 @@
       closeFinalizeModal();
     }
 
-    // 渲染底部角色快速切換工具列 (單人測試神器)
-    function renderQuickTestingDock() {
-      const container = document.getElementById('quick-role-buttons');
-      container.innerHTML = '';
-      const poll = getCurrentPoll();
-      if (!poll) return;
-
-      const searchStr = appState.currentQuery || window.location.search || '';
-      const currentParams = new URLSearchParams(searchStr.startsWith('?') ? searchStr.substring(1) : searchStr);
-      const isAdminActive = currentParams.get('admin') === '1' && !appState.currentToken;
-
-      // 發起人後台按鈕
-      const adminBtn = document.createElement('button');
-      adminBtn.className = `px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${isAdminActive ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`;
-      adminBtn.innerHTML = `<i class="fa-solid fa-crown text-amber-300 mr-1"></i>後台看板`;
-      adminBtn.onclick = () => {
-        safeSession.setItem('AUTH_' + poll.id, 'true');
-        navigateTo(`?poll=${poll.id}&admin=1`);
-      };
-      container.appendChild(adminBtn);
-
-      // 受邀者按鈕 (取前三位示範)
-      poll.participants.slice(0, 3).forEach(p => {
-        const isCurrent = appState.currentToken === p.token;
-        const btn = document.createElement('button');
-        btn.className = `px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${isCurrent ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`;
-        btn.innerHTML = `<i class="fa-solid fa-user text-[10px] mr-1 text-slate-400"></i>${p.name.split(' ')[0]}`;
-        btn.onclick = () => navigateTo(`?poll=${poll.id}&token=${p.token}`);
-        container.appendChild(btn);
-      });
-    }
-
-    function resetToDemoData() {
-      appState.polls[DEMO_POLL.id] = JSON.parse(JSON.stringify(DEMO_POLL));
-      safeSession.setItem('AUTH_' + DEMO_POLL.id, 'true');
-      saveStorage();
-      showToast('已重新重設回示範資料！');
-      navigateTo(`?poll=${DEMO_POLL.id}&admin=1`);
-    }
-
     // 頁面載入啟動
     window.addEventListener('DOMContentLoaded', () => {
       initStorage();
       parseRoute();
 
-      // 每分鐘更新一次倒數文字
+      // 每秒更新即時截止倒數看板
+      setInterval(updateParticipantLiveCountdown, 1000);
       setInterval(updateAdminCountdown, 60000);
     });
 
