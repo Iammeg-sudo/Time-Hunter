@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 管理者：在 admins 集合中建立「文件 ID = 管理者 email（小寫）」的文件
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+    }
+    function survey(sid) {
+      return get(/databases/$(database)/documents/surveys/$(sid)).data;
+    }
+
+    match /admins/{email} {
+      allow get: if request.auth != null && request.auth.token.email == email;
+    }
+
+    match /lists/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /surveys/{sid} {
+      allow get: if true;               // 有連結的人可看該場調查
+      allow list, write: if isAdmin();  // 只有管理者可列出全部 / 新增 / 修改
+
+      match /private/{doc} {            // 與會者 email 只有管理者看得到
+        allow read, write: if isAdmin();
+      }
+
+      match /responses/{pid} {
+        allow read: if true;
+        allow delete: if isAdmin();
+        allow create, update: if isAdmin() || (
+          survey(sid).status == 'open'
+          && request.time.toMillis() < survey(sid).deadline
+          && pid in survey(sid).pids
+          && request.resource.data.keys().hasOnly(['pid', 'name', 'slots', 'updatedAt'])
+          && request.resource.data.pid == pid
+          && request.resource.data.slots is list
+          && request.resource.data.slots.size() <= 200
+        );
+      }
+    }
+  }
+}
