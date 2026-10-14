@@ -147,13 +147,51 @@
             <input type="datetime-local" id="cp-deadline" required class="px-4 py-2 rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-bold text-slate-800 shadow-sm">
           </div>
 
-          <!-- 受邀名單批次匯入 -->
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="block text-xs sm:text-sm font-bold text-slate-700">受邀人員名單批次匯入 <span class="text-rose-500">*</span></label>
-              <span class="text-xs text-slate-400">支援「姓名」或「姓名 &lt;Email&gt;」，換行隔開</span>
+          <!-- 受邀名單表格化管理 (姓名/Email，支援新增、修改、刪除與批次匯入) -->
+          <div class="bg-slate-50/90 rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200">
+              <div>
+                <div class="flex items-center gap-2">
+                  <label class="text-xs sm:text-sm font-bold text-slate-800">受邀人員名單管理 <span class="text-rose-500">*</span></label>
+                  <span id="create-pt-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">共 0 位成員</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-0.5">🔒 隱私保護：填寫之 Email 僅發起人於後台管理可見，前台受邀者絕不公開。</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button type="button" onclick="openCreateBatchImportModal()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs shadow-sm transition-colors flex items-center gap-1.5">
+                  <i class="fa-solid fa-file-import text-indigo-600"></i> 批次貼上匯入
+                </button>
+              </div>
             </div>
-            <textarea id="cp-participants" rows="4" required placeholder="王小明 <ming@example.com>&#10;李大華 <lee@example.com>&#10;張小芬&#10;陳大同" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs sm:text-sm font-mono"></textarea>
+
+            <!-- 表格化名單 -->
+            <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-xl bg-white">
+              <table class="w-full text-left text-xs sm:text-sm">
+                <thead class="bg-slate-100/80 text-slate-600 font-bold border-b border-slate-200">
+                  <tr>
+                    <th class="py-2 px-3 w-12 text-center">#</th>
+                    <th class="py-2 px-3">姓名 <span class="text-rose-500">*</span></th>
+                    <th class="py-2 px-3">Email (催填用，前台隱藏)</th>
+                    <th class="py-2 px-3 w-28 text-center">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="create-participants-tbody" class="divide-y divide-slate-100">
+                  <!-- 動態繪製表格列 -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 單筆快速新增輸入列 -->
+            <div class="p-3 bg-white rounded-xl border border-slate-200/90 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <span class="text-xs font-bold text-slate-600 shrink-0 flex items-center gap-1">
+                <i class="fa-solid fa-user-plus text-indigo-600"></i> 新增成員：
+              </span>
+              <input type="text" id="new-cp-name" placeholder="姓名 (必填，例：陳小美)" class="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <input type="email" id="new-cp-email" placeholder="Email (選填，例：mei@corp.com)" class="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <button type="button" onclick="addCreateParticipant()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors shrink-0 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-plus text-[10px]"></i> 加入名單
+              </button>
+            </div>
           </div>
 
           <!-- 送出按鈕 -->
@@ -616,30 +654,22 @@
     </div>
   </div>
 
-  <!-- 彈窗 6: 調查會議時間歷史記錄 -->
-  <div id="modal-history" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[85vh]">
-      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-        <div>
-          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-            <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> 調查會議時間歷史記錄
-          </h3>
-          <p class="text-xs text-slate-500 mt-0.5">近一年內之會議清單，點選單一會議即可展開細節資訊與歷程</p>
-        </div>
-        <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl">
+  <!-- 彈窗 5-2: 發起新會議專用批次貼上匯入 Modal -->
+  <div id="modal-create-batch-import" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 border border-slate-100">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-file-import text-indigo-600"></i> 快速批次貼上匯入
+        </h3>
+        <button onclick="closeCreateBatchImportModal()" class="text-slate-400 hover:text-slate-600 p-1">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
-
-      <div class="p-6 overflow-y-auto space-y-3 flex-1 custom-scrollbar" id="history-modal-list">
-        <!-- 動態渲染歷史會議清單 -->
-      </div>
-
-      <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-        <span class="text-[11px] text-slate-400">💡 系統依規定自動保留近一年 (365天) 之歷史記錄</span>
-        <button onclick="closeHistoryModal()" class="px-4 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors">
-          關閉
-        </button>
+      <p class="text-xs text-slate-500 mb-2">每行一位成員，支援格式：<code class="text-indigo-600 font-bold">姓名 &lt;Email&gt;</code> 或純 <code class="text-indigo-600 font-bold">姓名</code></p>
+      <textarea id="create-batch-import-textarea" rows="6" placeholder="王小明 (前端) <ming@example.com>&#10;李大華 (後端) <hua@example.com>&#10;張小芬 (設計) <fen@example.com>&#10;陳大同 (產品經理) <tung@example.com>" class="w-full p-3.5 rounded-xl border border-slate-300 font-mono text-xs mb-4 focus:ring-2 focus:ring-indigo-500"></textarea>
+      <div class="flex gap-2">
+        <button type="button" onclick="closeCreateBatchImportModal()" class="w-1/2 py-2 rounded-xl text-slate-600 bg-slate-100 hover:bg-slate-200 text-xs font-semibold">取消</button>
+        <button type="button" onclick="submitCreateBatchImport()" class="w-1/2 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-100">確認匯入至表格</button>
       </div>
     </div>
   </div>
@@ -955,6 +985,8 @@
 
     // 建立新會議表單處理邏輯
     let currentCreateDates = [];
+    let createParticipantsList = [];
+    let editingCreateParticipantIndex = null;
 
     function initCreatePollView() {
       const today = new Date();
@@ -971,6 +1003,182 @@
       dl.setHours(18, 0, 0, 0);
       const dlStr = dl.toISOString().slice(0, 16);
       document.getElementById('cp-deadline').value = dlStr;
+
+      // 初始化名單表格 (若為空則預設帶入 4 位示範)
+      if (createParticipantsList.length === 0) {
+        createParticipantsList = [
+          { name: '王小明 (前端)', email: 'ming@example.com' },
+          { name: '李大華 (後端)', email: 'hua@example.com' },
+          { name: '張小芬 (設計)', email: 'fen@example.com' },
+          { name: '陳大同 (產品經理)', email: 'tung@example.com' }
+        ];
+      }
+      renderCreateParticipantsTable();
+    }
+
+    // 渲染建立會議時的名單表格
+    function renderCreateParticipantsTable() {
+      const tbody = document.getElementById('create-participants-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (createParticipantsList.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="py-6 text-center text-xs text-slate-400">
+              尚無受邀成員，請在下方輸入或點擊「批次貼上匯入」
+            </td>
+          </tr>
+        `;
+        document.getElementById('create-pt-count-badge').innerText = '共 0 位成員';
+        return;
+      }
+
+      document.getElementById('create-pt-count-badge').innerText = `共 ${createParticipantsList.length} 位成員`;
+
+      createParticipantsList.forEach((pt, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/80 transition-colors group';
+
+        const isEditing = editingCreateParticipantIndex === idx;
+
+        if (isEditing) {
+          tr.innerHTML = `
+            <td class="py-2 px-3 text-center text-slate-400 font-bold">${idx + 1}</td>
+            <td class="py-2 px-3">
+              <input type="text" id="edit-row-name-${idx}" value="${pt.name}" class="w-full px-2.5 py-1 text-xs border border-indigo-400 rounded-lg focus:outline-none ring-1 ring-indigo-400 font-bold text-slate-800">
+            </td>
+            <td class="py-2 px-3">
+              <input type="email" id="edit-row-email-${idx}" value="${pt.email || ''}" placeholder="example@corp.com" class="w-full px-2.5 py-1 text-xs border border-indigo-400 rounded-lg focus:outline-none ring-1 ring-indigo-400 font-medium text-slate-700">
+            </td>
+            <td class="py-2 px-3 text-center">
+              <div class="flex items-center justify-center gap-1.5">
+                <button type="button" onclick="saveEditCreateParticipant(${idx})" class="p-1 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold" title="儲存修改">
+                  儲存
+                </button>
+                <button type="button" onclick="cancelEditCreateParticipant()" class="p-1 px-2 text-xs bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-lg font-bold" title="取消">
+                  取消
+                </button>
+              </div>
+            </td>
+          `;
+        } else {
+          tr.innerHTML = `
+            <td class="py-2 px-3 text-center text-slate-400 font-semibold">${idx + 1}</td>
+            <td class="py-2 px-3">
+              <span class="font-bold text-slate-800">${pt.name}</span>
+            </td>
+            <td class="py-2 px-3 font-mono text-xs text-slate-500">
+              ${pt.email ? `<span class="inline-flex items-center gap-1 text-indigo-600 bg-indigo-50/60 px-2 py-0.5 rounded-md"><i class="fa-regular fa-envelope text-[10px]"></i> ${pt.email}</span>` : '<span class="text-slate-400">未提供</span>'}
+            </td>
+            <td class="py-2 px-3 text-center">
+              <div class="flex items-center justify-center gap-2">
+                <button type="button" onclick="startEditCreateParticipant(${idx})" class="p-1 text-slate-400 hover:text-indigo-600 transition-colors" title="修改此筆成員">
+                  <i class="fa-solid fa-pen text-xs"></i>
+                </button>
+                <button type="button" onclick="deleteCreateParticipant(${idx})" class="p-1 text-slate-400 hover:text-rose-500 transition-colors" title="刪除此成員">
+                  <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+              </div>
+            </td>
+          `;
+        }
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 單筆新增受邀者至發起表單
+    function addCreateParticipant() {
+      const nameInput = document.getElementById('new-cp-name');
+      const emailInput = document.getElementById('new-cp-email');
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim();
+
+      if (!name) {
+        showToast('請輸入成員姓名', 'warning');
+        nameInput.focus();
+        return;
+      }
+
+      createParticipantsList.push({ name, email });
+      nameInput.value = '';
+      emailInput.value = '';
+      renderCreateParticipantsTable();
+      showToast(`已新增成員「${name}」`);
+    }
+
+    function startEditCreateParticipant(idx) {
+      editingCreateParticipantIndex = idx;
+      renderCreateParticipantsTable();
+    }
+
+    function saveEditCreateParticipant(idx) {
+      const nameInput = document.getElementById(`edit-row-name-${idx}`);
+      const emailInput = document.getElementById(`edit-row-email-${idx}`);
+      const newName = nameInput.value.trim();
+      const newEmail = emailInput.value.trim();
+
+      if (!newName) {
+        showToast('姓名不可為空', 'warning');
+        return;
+      }
+
+      createParticipantsList[idx] = { name: newName, email: newEmail };
+      editingCreateParticipantIndex = null;
+      renderCreateParticipantsTable();
+      showToast('已更新成員資訊');
+    }
+
+    function cancelEditCreateParticipant() {
+      editingCreateParticipantIndex = null;
+      renderCreateParticipantsTable();
+    }
+
+    function deleteCreateParticipant(idx) {
+      const removed = createParticipantsList[idx];
+      createParticipantsList.splice(idx, 1);
+      if (editingCreateParticipantIndex === idx) {
+        editingCreateParticipantIndex = null;
+      }
+      renderCreateParticipantsTable();
+      showToast(`已移除成員「${removed.name}」`);
+    }
+
+    // 發起新會議的批次貼上匯入彈窗控制
+    function openCreateBatchImportModal() {
+      document.getElementById('create-batch-import-textarea').value = '';
+      document.getElementById('modal-create-batch-import').classList.remove('hidden');
+    }
+
+    function closeCreateBatchImportModal() {
+      document.getElementById('modal-create-batch-import').classList.add('hidden');
+    }
+
+    function submitCreateBatchImport() {
+      const raw = document.getElementById('create-batch-import-textarea').value.trim();
+      if (!raw) {
+        showToast('請輸入欲匯入的名單文字', 'warning');
+        return;
+      }
+
+      const lines = raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+      let count = 0;
+
+      lines.forEach(line => {
+        let name = line;
+        let email = '';
+        const match = line.match(/^(.*?)[<](.*?)[>]$/);
+        if (match) {
+          name = match[1].trim();
+          email = match[2].trim();
+        }
+        createParticipantsList.push({ name, email });
+        count++;
+      });
+
+      renderCreateParticipantsTable();
+      closeCreateBatchImportModal();
+      showToast(`已成功批次匯入 ${count} 位成員至名單！`);
     }
 
     function renderDateInputs() {
@@ -1023,30 +1231,19 @@
       const notes = document.getElementById('cp-notes').value.trim();
       const password = document.getElementById('cp-password').value.trim() || '09350935';
       const deadline = document.getElementById('cp-deadline').value;
-      const rawParticipants = document.getElementById('cp-participants').value.trim();
 
-      const lines = rawParticipants.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
-      if (lines.length === 0) {
-        showToast('請至少輸入一位受邀者姓名', 'warning');
+      if (createParticipantsList.length === 0) {
+        showToast('請至少新增一位受邀人員至名單表格中', 'warning');
         return;
       }
 
-      const participants = lines.map(line => {
-        let name = line;
-        let email = '';
-        const match = line.match(/^(.*?)[<](.*?)[>]$/);
-        if (match) {
-          name = match[1].trim();
-          email = match[2].trim();
-        }
-        return {
-          id: 'user_' + Math.random().toString(36).substring(2, 9),
-          name: name,
-          email: email,
-          votes: null,
-          submittedAt: null
-        };
-      });
+      const participants = createParticipantsList.map(pt => ({
+        id: 'user_' + Math.random().toString(36).substring(2, 9),
+        name: pt.name,
+        email: pt.email || '',
+        votes: null,
+        submittedAt: null
+      }));
 
       const pollId = 'poll_' + Date.now().toString(36);
       const nowStr = new Date().toISOString();
@@ -1241,10 +1438,7 @@
         ths += `<th class="py-1 px-1.5 text-center font-medium">上午</th>`;
         ths += `<th class="py-1 px-1.5 text-center font-medium">下午</th>`;
       });
-      ths += `</tr>`;
-      thead.innerHTML = ths;
-
-      // 內容列表
+      // 內容列表 (後台深色版：清晰顯示成員 Email 與維護按鈕)
       poll.participants.forEach((p, pIdx) => {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-800/50 transition-colors group border-b border-slate-800/80';
@@ -1252,9 +1446,12 @@
         let rowHtml = `
           <td class="py-2.5 px-3 text-left border-r border-slate-800 bg-slate-900/40">
             <div class="flex items-center justify-between gap-1.5">
-              <div class="min-w-0 flex items-center gap-1.5">
-                <span class="font-bold text-slate-100 truncate text-xs sm:text-sm" title="${p.name}${p.email ? ' (' + p.email + ')' : ''}">${p.name}</span>
-                ${p.votes === null ? '<span class="text-[10px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-normal shrink-0">未填</span>' : ''}
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-bold text-slate-100 truncate text-xs sm:text-sm" title="${p.name}">${p.name}</span>
+                  ${p.votes === null ? '<span class="text-[10px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-normal shrink-0">未填</span>' : ''}
+                </div>
+                ${p.email ? `<div class="text-[11px] text-cyan-400 font-mono truncate max-w-[130px] flex items-center gap-1 mt-0.5" title="${p.email}"><i class="fa-regular fa-envelope text-[10px] text-slate-500"></i> ${p.email}</div>` : '<div class="text-[10px] text-slate-600 mt-0.5">無 Email</div>'}
               </div>
               <div class="flex items-center gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
                 <button type="button" onclick="openEditParticipantModal(${pIdx})" class="p-1 text-slate-400 hover:text-cyan-400 transition-colors" title="修改成員姓名/Email">
