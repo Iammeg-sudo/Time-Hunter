@@ -141,6 +141,8 @@ a.card:hover { border-color: var(--t); transform: translateY(-2px); box-shadow: 
 .mf label em, .f label em { font-style: normal; color: var(--o-d); margin-left: 6px; }
 .rcpt { font-family: var(--mono); font-size: 12px; background: var(--bg2); border: 1px solid var(--line2); border-radius: var(--r); padding: 8px 10px; max-height: 90px; overflow: auto; word-break: break-all; color: var(--t-d); min-height: 38px; }
 #mbody { font-size: 13px; }
+.times { display: flex; align-items: center; gap: 8px; color: var(--dim); }
+.times input { flex: 1; }
 
 .rank { list-style: none; display: grid; gap: 12px; }
 .rank li { display: grid; grid-template-columns: 26px minmax(170px, auto) 1fr 30px; gap: 4px 12px; align-items: center; font-size: 13px; }

@@ -272,9 +272,10 @@ function viewDetail(id) {
       box.dataset.built = 1;
       box.innerHTML = `
       <div class="ph2">信件 <span class="seg sm" id="mm">
-        <button data-m="invite">邀請</button><button data-m="remind">催填</button><button data-m="notice">通知</button>
+        <button data-m="invite">邀請</button><button data-m="remind">催填</button><button data-m="notice">會議通知</button>
       </span></div>
-      <div class="mf" id="mslot"><label>會議時段</label><select id="ms"></select></div>
+      <div class="mf" id="mslot"><label>會議時段</label><select id="ms"></select>
+        <div class="times"><input type="time" id="mt1"><span>–</span><input type="time" id="mt2"></div></div>
       <div class="mf"><label>收件人 <em id="mrc"></em></label><div class="rcpt" id="mr"></div>
         <button class="btn sm" data-c="to">${icon('copy')}複製收件人</button></div>
       <div class="mf"><label>主旨</label><input id="msub">
@@ -284,10 +285,23 @@ function viewDetail(id) {
       <div class="row">
         <button class="btn pri" data-c="all">${icon('copy')}全部複製</button>
         <a class="btn" id="mto">${icon('mail')}開啟郵件</a>
+        <button class="btn" id="mics">${icon('cal')}Email會議通知</button>
       </div>`;
       box.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; modePicked = true; edited = false; drawMail(); });
       box.querySelector('#ms').onchange = e => { slotId = e.target.value; slotPicked = true; edited = false; drawMail(); };
       box.querySelector('#msub').oninput = box.querySelector('#mbody').oninput = () => { edited = true; updateMailto(); };
+      box.querySelector('#mt1').onchange = box.querySelector('#mt2').onchange = () => { edited = false; drawMail(); };
+      box.querySelector('#mics').onclick = () => {
+        const slot = s.slots.find(x => x.id === slotId);
+        const t1 = box.querySelector('#mt1').value, t2 = box.querySelector('#mt2').value;
+        if (!slot || !t1 || !t2 || t1 >= t2) return U.toast('請確認會議時段與時間', true);
+        const at = s.participants.filter(p => emails[p.id]).map(p => ({ name: p.name, email: emails[p.id] }));
+        U.download(`${s.title}.ics`, U.buildIcs({
+          uid: `${s.id}-${slot.id}@timehunter`, title: s.title, location: s.location,
+          body: box.querySelector('#mbody').value, date: slot.date, start: t1, end: t2, attendees: at,
+        }), 'text/calendar;charset=utf-8');
+        U.toast('已下載會議檔，請開啟以建立 Outlook 會議');
+      };
       box.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
         const to = box.querySelector('#mr').textContent, sub = box.querySelector('#msub').value, body = box.querySelector('#mbody').value;
         const k = b.dataset.c;
@@ -296,9 +310,20 @@ function viewDetail(id) {
     }
 
     box.querySelectorAll('[data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === mode));
-    box.querySelector('#mslot').hidden = mode !== 'notice';
+    const notice = mode === 'notice';
+    box.querySelector('#mslot').hidden = !notice;
+    box.querySelector('#mto').hidden = notice;
+    box.querySelector('#mics').hidden = !notice;
     box.querySelector('#ms').innerHTML = rank.map(r =>
       `<option value="${r.slot.id}" ${r.slot.id === slotId ? 'selected' : ''}>${U.slotFull(r.slot)} · ${r.count} 票</option>`).join('');
+
+    // 換時段時帶入預設時間，之後可手動調整
+    const slot = s.slots.find(x => x.id === slotId);
+    const t1 = box.querySelector('#mt1'), t2 = box.querySelector('#mt2');
+    if (slot && t1.dataset.for !== slotId) {
+      [t1.value, t2.value] = U.slotTimes(slot);
+      t1.dataset.for = slotId;
+    }
 
     const people = mode === 'remind' ? s.participants.filter(p => !done.has(p.id)) : s.participants;
     const addr = people.map(p => emails[p.id]).filter(Boolean);
@@ -307,7 +332,7 @@ function viewDetail(id) {
     box.querySelector('#mrc').textContent = `${addr.length}${missing ? ` · ${missing} 位無 email` : ''}`;
 
     if (!edited) {
-      const m = U.buildMail(mode, s, s.slots.find(x => x.id === slotId));
+      const m = U.buildMail(mode, s, slot, { start: t1.value, end: t2.value });
       box.querySelector('#msub').value = m.subject;
       box.querySelector('#mbody').value = m.body;
     }
@@ -316,7 +341,7 @@ function viewDetail(id) {
 
   function updateMailto() {
     const box = main.querySelector('#mail');
-    const to = box.querySelector('#mr').textContent.replace(/;\s*/g, ',');
+    const to = box.querySelector('#mr').textContent.replace(/;\s*/g, ';');
     box.querySelector('#mto').href = `mailto:${to}?subject=${encodeURIComponent(box.querySelector('#msub').value)}&body=${encodeURIComponent(box.querySelector('#mbody').value)}`;
   }
 }

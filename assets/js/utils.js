@@ -95,7 +95,10 @@ export function parseMembers(text) {
 
 export const membersToText = members => members.map(m => m.email ? `${m.name}, ${m.email}` : m.name).join('\n');
 
-export function buildMail(mode, survey, slot) {
+// 會議通知的預設時間：上午 10:30–12:30、下午 14:30–15:30，自訂時段沿用原區間
+export const slotTimes = s => s.type === 'am' ? ['10:30', '12:30'] : s.type === 'pm' ? ['14:30', '15:30'] : [s.start, s.end];
+
+export function buildMail(mode, survey, slot, times) {
   const t = survey.title, dl = fmtDateTime(survey.deadline), link = surveyLink(survey.id);
   if (mode === 'invite') return {
     subject: `【時間調查】${t}`,
@@ -105,11 +108,60 @@ export function buildMail(mode, survey, slot) {
     subject: `【提醒】${t} 時間調查即將截止`,
     body: `您好，\n\n「${t}」時間調查將於 ${dl} 截止，目前尚未收到您的回覆，請點選連結填寫：\n\n${link}\n\n謝謝！`,
   };
-  const when = slot ? slotFull(slot) : '（請選擇時段）';
+  const when = !slot ? '（請選擇時段）'
+    : times?.start && times?.end ? `${fmtDate(slot.date, true)} ${times.start}–${times.end}` : slotFull(slot);
   return {
     subject: `【會議通知】${t}`,
     body: `各位好，\n\n「${t}」會議時間確定如下，敬請準時出席：\n\n■ 時間：${when}\n${survey.location ? `■ 地點：${survey.location}\n` : ''}\n如有異動請提前告知，謝謝。`,
   };
+}
+
+// 產生 Outlook 會議檔（.ics）；開啟後會以「會議」視窗顯示，收件人、時間、地點、內文都已帶入
+export function buildIcs({ uid, title, location, body, date, start, end, attendees }) {
+  const utc = (d, t) => {
+    const [y, m, dd] = d.split('-').map(Number), [h, mi] = t.split(':').map(Number);
+    return new Date(y, m - 1, dd, h, mi).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  };
+  const txt = s => String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Time Hunter//ZH-TW', 'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '')}`,
+    `DTSTART:${utc(date, start)}`,
+    `DTEND:${utc(date, end)}`,
+    `SUMMARY:${txt(title)}`,
+    ...(location ? [`LOCATION:${txt(location)}`] : []),
+    `DESCRIPTION:${txt(body)}`,
+    ...attendees.map(a => `ATTENDEE;CN="${String(a.name).replace(/"/g, '')}";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${a.email}`),
+    'X-MS-OLK-FORCEINSPECTOROPEN:TRUE',
+    'END:VEVENT', 'END:VCALENDAR',
+  ];
+  return lines.map(foldLine).join('\r\n') + '\r\n';
+}
+
+// iCalendar 每行上限 75 bytes，超過要折行（以 UTF-8 計算，不切斷中文字）
+function foldLine(line) {
+  const enc = new TextEncoder(), out = [];
+  let cur = '', size = 0, limit = 75;
+  for (const ch of line) {
+    const n = enc.encode(ch).length;
+    if (size + n > limit) { out.push(cur); cur = ''; size = 0; limit = 74; }
+    cur += ch; size += n;
+  }
+  out.push(cur);
+  return out.join('\r\n ');
+}
+
+export function download(filename, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename.replace(/[\\/:*?"<>|]/g, '_');
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function toast(msg, bad = false) {
