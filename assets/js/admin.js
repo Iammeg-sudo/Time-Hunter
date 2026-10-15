@@ -300,7 +300,7 @@ function viewDetail(id) {
           uid: `${s.id}-${slot.id}@timehunter`, title: s.title, location: s.location,
           body: box.querySelector('#mbody').value, date: slot.date, start: t1, end: t2, attendees: at,
         }), 'text/calendar;charset=utf-8');
-        U.toast('已下載會議檔，請開啟以建立 Outlook 會議');
+        U.toast('已下載會議檔：按 Ctrl+J 開啟下載清單，點檔案即可在 Outlook 建立會議', false, 6000);
       };
       box.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
         const to = box.querySelector('#mr').textContent, sub = box.querySelector('#msub').value, body = box.querySelector('#mbody').value;

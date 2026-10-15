@@ -133,11 +133,19 @@ export function buildIcs({ uid, title, location, body, date, start, end, attende
     `SUMMARY:${txt(title)}`,
     ...(location ? [`LOCATION:${txt(location)}`] : []),
     `DESCRIPTION:${txt(body)}`,
+    // 提供 HTML 內文，Outlook 才會以 HTML 格式開啟；否則 M+ / Teams 插入的連結在送出時會被轉成純文字
+    `X-ALT-DESC;FMTTYPE=text/html:${txt(toHtml(body))}`,
     ...attendees.map(a => `ATTENDEE;CN="${String(a.name).replace(/"/g, '')}";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${a.email}`),
     'X-MS-OLK-FORCEINSPECTOROPEN:TRUE',
     'END:VEVENT', 'END:VCALENDAR',
   ];
   return lines.map(foldLine).join('\r\n') + '\r\n';
+}
+
+function toHtml(text) {
+  const lines = esc(text).split(/\r?\n/).map(l => l.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>') || '&nbsp;');
+  return '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN"><html><body style="font-family:\'Microsoft JhengHei\',sans-serif;font-size:12pt">'
+    + lines.map(l => `<p style="margin:0">${l}</p>`).join('') + '</body></html>';
 }
 
 // iCalendar 每行上限 75 bytes，超過要折行（以 UTF-8 計算，不切斷中文字）
@@ -164,13 +172,13 @@ export function download(filename, content, type) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function toast(msg, bad = false) {
+export function toast(msg, bad = false, ms = 2200) {
   const el = document.getElementById('toast');
   if (!el) return;
   el.textContent = msg;
   el.className = 'show' + (bad ? ' bad' : '');
   clearTimeout(toast.t);
-  toast.t = setTimeout(() => { el.className = ''; }, 2200);
+  toast.t = setTimeout(() => { el.className = ''; }, ms);
 }
 
 export async function copy(text, msg = '已複製') {
