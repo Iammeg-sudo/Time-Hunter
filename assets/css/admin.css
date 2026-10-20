@@ -194,6 +194,10 @@ a.card:hover { border-color: var(--t); transform: translateY(-2px); box-shadow: 
 .drow .x { margin-left: auto; }
 .drow .x:hover { color: var(--bad); background: #fff0f2; }
 
+.share { display: grid; gap: 8px; }
+.share label, .pick label { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+.share input, .pick input { width: auto; accent-color: var(--t); }
+.pick { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; max-height: 180px; overflow: auto; padding: 10px 14px; margin-left: 24px; background: var(--bg2); border: 1px solid var(--line2); border-radius: var(--r); }
 .modal { position: fixed; inset: 0; background: rgba(36, 57, 61, .35); backdrop-filter: blur(4px); display: grid; place-items: center; padding: 16px; z-index: 30; }
 .dlg { width: min(520px, 100%); display: grid; gap: 14px; margin: 0; box-shadow: 0 30px 80px rgba(36, 57, 61, .25); border-top: 3px solid var(--t); }
 

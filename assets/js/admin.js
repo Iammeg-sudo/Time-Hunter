@@ -14,7 +14,7 @@ store.onAuth(u => {
   user = u;
   if (u?.isAdmin) {
     gUnsubs.push(store.watchSurveys(Date.now() - YEAR, s => { surveys = s; loaded = true; refresh?.(); }));
-    gUnsubs.push(store.watchLists(l => { lists = l; refresh?.(); }));
+    gUnsubs.push(store.watchLists(l => { lists = l; refresh?.(); }, u));
   }
   route();
 });
@@ -508,8 +508,9 @@ function buildEditor(src, emails) {
     if (!m.length) return U.toast('名單是空的', true);
     const name = prompt('名單名稱');
     if (!name?.trim()) return;
-    const ex = lists.find(l => l.name === name.trim());
-    await store.saveList({ id: ex?.id, name: name.trim(), members: m });
+    // 只會覆蓋「自己的」同名名單；預設不分享
+    const ex = lists.find(l => l.name === name.trim() && l.owner === user.email);
+    await store.saveList({ id: ex?.id, name: name.trim(), members: m, owner: user.email, shareAll: ex?.shareAll || false, sharedWith: ex?.sharedWith || [] });
     U.toast(ex ? '已更新名單' : '已存成名單');
   };
 
@@ -643,23 +644,45 @@ function viewAdmins() {
 }
 
 /* ---------- 名單 ---------- */
+// 名單權限：建立者與最高管理者可編輯／刪除；被分享的人只能看與匯入
+const canEditList = l => user.isSuper || l.owner === user.email;
+const shareMode = l => l.shareAll ? 'all' : (l.sharedWith || []).length ? 'some' : 'none';
+
 function viewLists() {
   shell('lists');
-  let editing = null;
+  let editing = null, admins = [];
+  vUnsubs.push(store.watchAdmins(a => { admins = a; if (!editing) draw(); }, () => {}));
+  const nameOf = email => admins.find(a => a.id === email)?.name || email;
+
+  function shareTag(l) {
+    const m = shareMode(l);
+    if (m === 'all') return '<span class="tag live">分享給所有管理者</span>';
+    if (m === 'some') return `<span class="tag live" title="${esc(l.sharedWith.map(nameOf).join('、'))}">分享給 ${l.sharedWith.length} 人</span>`;
+    return '<span class="tag">不分享</span>';
+  }
+  function ownerText(l) {
+    if (l.owner === user.email) return '我建立的';
+    if (!l.owner) return '建立者未記錄';
+    return `建立者 ${esc(nameOf(l.owner))}`;
+  }
 
   function draw() {
+    const others = admins.filter(a => a.id !== user.email);
+    const mode = editing ? shareMode(editing) : 'none';
     main.innerHTML = `
     <header class="ph">
       <div><div class="crumb">名單管理</div><h1>與會名單</h1></div>
       <button class="btn pri" id="nl">${icon('plus')}新增名單</button>
     </header>
+    <p class="dim" style="margin:-8px 0 16px">名單預設只有你和最高管理者看得到；可在編輯時選擇分享給其他管理者。</p>
     <div class="cards">${lists.map(l => `
       <div class="card">
-        <div class="card-h"><span class="tag">${l.members.length} 人</span>
-          <span><button class="ib" data-e="${l.id}" title="編輯">${icon('edit')}</button><button class="ib" data-x="${l.id}" title="刪除">${icon('trash')}</button></span>
+        <div class="card-h"><span>${shareTag(l)}</span>
+          <span>${canEditList(l) ? `<button class="ib" data-e="${l.id}" title="編輯">${icon('edit')}</button><button class="ib" data-x="${l.id}" title="刪除">${icon('trash')}</button>` : '<span class="dim">僅檢視</span>'}</span>
         </div>
-        <h3>${esc(l.name)}</h3>
+        <h3>${esc(l.name)} <span class="dim" style="font-size:13px;font-weight:400">${l.members.length} 人</span></h3>
         <div class="chips">${l.members.slice(0, 12).map(m => `<span class="chip">${esc(m.name)}</span>`).join('')}${l.members.length > 12 ? `<span class="chip dim">+${l.members.length - 12}</span>` : ''}</div>
+        <div class="card-m"><span>${icon('users')}${ownerText(l)}</span></div>
       </div>`).join('') || '<div class="none">尚無名單</div>'}
     </div>
     ${editing ? `
@@ -667,15 +690,27 @@ function viewLists() {
       <div class="ph2">${editing.id ? '編輯名單' : '新增名單'}</div>
       <div class="f"><label>名稱</label><input name="name" required value="${esc(editing.name)}"></div>
       <div class="f"><label>成員 <em id="lc"></em></label>
-        <textarea name="mem" rows="12" placeholder="王小明, wang@company.com">${esc(U.membersToText(editing.members))}</textarea></div>
+        <textarea name="mem" rows="8" placeholder="王小明, wang@company.com">${esc(U.membersToText(editing.members))}</textarea></div>
+      <div class="f"><label>分享設定</label>
+        <div class="share">
+          <label><input type="radio" name="sm" value="none" ${mode === 'none' ? 'checked' : ''}> 不分享（只有我和最高管理者看得到）</label>
+          <label><input type="radio" name="sm" value="all" ${mode === 'all' ? 'checked' : ''}> 分享給所有管理者</label>
+          <label><input type="radio" name="sm" value="some" ${mode === 'some' ? 'checked' : ''}> 分享給指定的人</label>
+          <div class="pick" id="pk" ${mode === 'some' ? '' : 'hidden'}>${others.map(a => `
+            <label><input type="checkbox" name="sw" value="${esc(a.id)}" ${(editing.sharedWith || []).includes(a.id) ? 'checked' : ''}> ${esc(a.name || a.id)}</label>`).join('') || '<span class="dim">目前沒有其他管理者</span>'}
+          </div>
+        </div>
+        <p class="dim" style="font-size:12px">被分享的人可以檢視和匯入，但不能修改或刪除。</p>
+      </div>
       <div class="row end"><button type="button" class="btn" id="lx">取消</button><button class="btn pri">${icon('check')}儲存</button></div>
     </form></div>` : ''}`;
 
-    main.querySelector('#nl').onclick = () => { editing = { name: '', members: [] }; draw(); };
+    main.querySelector('#nl').onclick = () => { editing = { name: '', members: [], shareAll: false, sharedWith: [] }; draw(); };
     main.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { editing = structuredClone(lists.find(l => l.id === b.dataset.e)); draw(); });
-    main.querySelectorAll('[data-x]').forEach(b => b.onclick = () => {
+    main.querySelectorAll('[data-x]').forEach(b => b.onclick = async () => {
       const l = lists.find(x => x.id === b.dataset.x);
-      if (confirm(`刪除名單「${l.name}」？`)) store.deleteList(l.id);
+      if (!confirm(`刪除名單「${l.name}」？`)) return;
+      try { await store.deleteList(l.id); } catch { U.toast('刪除失敗：只有建立者或最高管理者可以刪除', true); }
     });
 
     const f = main.querySelector('#lf');
@@ -683,15 +718,28 @@ function viewLists() {
       const ta = f.elements.mem, lc = f.querySelector('#lc');
       const cnt = () => { lc.textContent = U.parseMembers(ta.value).length; };
       ta.oninput = cnt; cnt();
+      f.querySelectorAll('[name=sm]').forEach(r => r.onchange = () => { f.querySelector('#pk').hidden = f.elements.sm.value !== 'some'; });
       f.querySelector('#lx').onclick = () => { editing = null; draw(); };
       f.onsubmit = async e => {
         e.preventDefault();
         const name = f.elements.name.value.trim(), members = U.parseMembers(ta.value);
         if (!name || !members.length) return U.toast('請輸入名稱與成員', true);
-        await store.saveList({ id: editing.id, name, members });
-        editing = null;
-        draw();
-        U.toast('已儲存');
+        const sm = f.elements.sm.value;
+        const sharedWith = sm === 'some' ? [...f.querySelectorAll('[name=sw]:checked')].map(c => c.value) : [];
+        if (sm === 'some' && !sharedWith.length) return U.toast('請勾選要分享的人', true);
+        try {
+          await store.saveList({
+            id: editing.id, name, members,
+            owner: editing.owner || user.email,   // 最高管理者編輯別人的名單時，建立者不變
+            shareAll: sm === 'all', sharedWith,
+          });
+          editing = null;
+          draw();
+          U.toast('已儲存');
+        } catch (x) {
+          console.error(x);
+          U.toast('儲存失敗：只有建立者或最高管理者可以修改', true);
+        }
       };
       f.elements.name.focus();
     }

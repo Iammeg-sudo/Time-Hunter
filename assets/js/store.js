@@ -88,8 +88,24 @@ async function firebaseStore() {
     submitResponse: (sid, pid, name, slots) =>
       F.setDoc(F.doc(db, 'surveys', sid, 'responses', pid), { pid, name, slots, updatedAt: Date.now() }),
 
-    watchLists(cb) {
-      return F.onSnapshot(F.query(F.collection(db, 'lists'), F.orderBy('name')), s => cb(docs(s)), e => console.error(e));
+    // 最高管理者看全部；其他人只讀「自己的」「分享給所有人的」「指定分享給我的」三種，再合併
+    watchLists(cb, me) {
+      const col = F.collection(db, 'lists');
+      const sort = l => l.sort((a, b) => a.name.localeCompare(b.name));
+      if (me.isSuper) return F.onSnapshot(col, s => cb(sort(docs(s))), e => console.error(e));
+      const parts = [[], [], []];
+      const emit = () => {
+        const m = new Map();
+        parts.flat().forEach(d => m.set(d.id, d));
+        cb(sort([...m.values()]));
+      };
+      const qs = [
+        F.query(col, F.where('owner', '==', me.email)),
+        F.query(col, F.where('shareAll', '==', true)),
+        F.query(col, F.where('sharedWith', 'array-contains', me.email)),
+      ];
+      const un = qs.map((q, i) => F.onSnapshot(q, s => { parts[i] = docs(s); emit(); }, e => console.error(e)));
+      return () => un.forEach(f => f());
     },
     async saveList(list) {
       const r = ref('lists', list.id);
@@ -166,7 +182,9 @@ function demoStore() {
       write();
     },
 
-    watchLists: cb => sub(() => cb(Object.values(data.lists).sort((a, b) => a.name.localeCompare(b.name)).map(clone))),
+    watchLists: (cb, me) => sub(() => cb(Object.values(data.lists)
+      .filter(l => me.isSuper || l.owner === me.email || l.shareAll || (l.sharedWith || []).includes(me.email))
+      .sort((a, b) => a.name.localeCompare(b.name)).map(clone))),
     async saveList(list) { const id = list.id || uid(); data.lists[id] = { ...clone(list), id }; write(); return id; },
     async deleteList(id) { delete data.lists[id]; write(); },
   };

@@ -29,8 +29,17 @@ service cloud.firestore {
       allow delete: if isSuper() && email != me();
     }
 
+    // 與會名單：建立者與最高管理者可看可改；被分享的人（全部或指定）只能看
     match /lists/{id} {
-      allow read, write: if isAdmin();
+      allow read: if isSuper() || (isAdmin() && (
+        resource.data.owner == me()
+        || resource.data.shareAll == true
+        || me() in resource.data.sharedWith
+      ));
+      allow create: if isAdmin() && request.resource.data.owner == me();
+      allow update: if isAdmin() && (resource.data.get('owner', '') == me() || isSuper())
+        && request.resource.data.owner == resource.data.get('owner', request.resource.data.owner);  // 建立者不能被改掉
+      allow delete: if isAdmin() && (resource.data.get('owner', '') == me() || isSuper());
     }
 
     match /surveys/{sid} {
