@@ -93,7 +93,23 @@ export function parseMembers(text) {
   return out;
 }
 
-export const membersToText = members => members.map(m => m.email ? `${m.name}, ${m.email}` : m.name).join('\n');
+export const isEmail = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+
+// 管理者名單：每行「姓名, email」或只有 email
+export function parseAdmins(text) {
+  const out = [], seen = new Set();
+  for (const raw of text.split(/\r?\n/)) {
+    const parts = raw.split(/[,\t，;；]|\s+/).map(x => x.trim()).filter(Boolean);
+    const email = (parts.find(isEmail) || '').toLowerCase();
+    if (!email || seen.has(email)) continue;
+    seen.add(email);
+    const name = parts.filter(p => !isEmail(p)).join(' ') || email.split('@')[0];
+    out.push({ email, name });
+  }
+  return out;
+}
+
+export const membersToText =members => members.map(m => m.email ? `${m.name}, ${m.email}` : m.name).join('\n');
 
 // 會議通知的預設時間：上午 10:30–12:30、下午 14:30–15:30，自訂時段沿用原區間
 export const slotTimes = s => s.type === 'am' ? ['10:30', '12:30'] : s.type === 'pm' ? ['14:30', '15:30'] : [s.start, s.end];
@@ -214,6 +230,7 @@ const P = {
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
   cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
 };
 export const icon = name => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name]}</svg>`;

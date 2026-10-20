@@ -31,32 +31,58 @@ function route() {
   else if (a === 'new') viewEditor(null);
   else if (a === 'edit' && b) viewEditor(b);
   else if (a === 'lists') viewLists();
+  else if (a === 'admins') viewAdmins();
   else viewHome();
 }
 
 const kpi = (label, val, cls = '') => `<div class="kpi ${cls}"><span>${label}</span><b>${val}</b></div>`;
 
-/* ---------- 登入 ---------- */
-function viewLogin(err = '') {
+/* ---------- 登入／第一次設定密碼／忘記密碼 ---------- */
+const AUTH_ERR = {
+  'auth/email-already-in-use': '此信箱已設定過密碼，請直接登入；忘記密碼可按「忘記密碼」',
+  'auth/weak-password': '密碼至少需要 6 碼',
+  'auth/invalid-email': '電子郵件格式不正確',
+  'auth/too-many-requests': '嘗試次數太多，請稍後再試',
+};
+function viewLogin(mode = 'login', err = '', info = '', email = '') {
+  const T = {
+    login: { head: '管理者登入', btn: '登入' },
+    signup: { head: '第一次使用 · 設定密碼', btn: '設定密碼並登入' },
+    reset: { head: '忘記密碼', btn: '寄送重設密碼信' },
+  }[mode];
   app.innerHTML = `
   <div class="login">
     <form class="term" id="lf">
-      <div class="term-h"><i></i><i></i><i></i><em>管理者登入</em></div>
+      <div class="term-h"><i></i><i></i><i></i><em>${T.head}</em></div>
       <div class="logo big">TIME<b>HUNTER</b><small>管理後台</small></div>
-      <label>電子郵件<input name="email" type="email" autocomplete="username" required></label>
-      <label>密碼<input name="pw" type="password" autocomplete="current-password" ${store.demo ? '' : 'required'}></label>
+      <label>電子郵件<input name="email" type="email" autocomplete="username" required value="${esc(email)}"></label>
+      ${mode === 'reset' ? '' : `<label>密碼<input name="pw" type="password" autocomplete="${mode === 'signup' ? 'new-password' : 'current-password'}" ${store.demo ? '' : 'required'}></label>`}
+      ${mode === 'signup' ? `<label>再輸入一次密碼<input name="pw2" type="password" autocomplete="new-password" ${store.demo ? '' : 'required'}></label>` : ''}
       <div class="err">${esc(err)}</div>
-      <button class="btn pri wide">登入 ${icon('arrow')}</button>
+      ${info ? `<div class="info">${esc(info)}</div>` : ''}
+      <button class="btn pri wide">${T.btn} ${icon('arrow')}</button>
+      <div class="links">
+        ${mode === 'login' ? '<a href="#" data-m="signup">第一次使用？設定密碼</a><a href="#" data-m="reset">忘記密碼</a>' : '<a href="#" data-m="login">← 回到登入</a>'}
+      </div>
+      ${mode === 'signup' ? '<div class="hint">請使用管理者已加入名單的公司電子郵件，密碼至少 6 碼</div>' : ''}
       ${store.demo ? '<div class="demo-tag">示範模式 · 輸入任意電子郵件即可進入</div>' : ''}
     </form>
   </div>`;
   const f = document.getElementById('lf');
+  const mail = () => f.elements.email.value.trim().toLowerCase();
+  f.querySelectorAll('[data-m]').forEach(a => a.onclick = e => { e.preventDefault(); viewLogin(a.dataset.m, '', '', mail()); });
   f.onsubmit = async e => {
     e.preventDefault();
-    const d = new FormData(f);
+    const em = mail();
+    if (mode === 'signup' && f.elements.pw.value !== f.elements.pw2.value) return viewLogin(mode, '兩次輸入的密碼不一樣', '', em);
     f.querySelector('button').disabled = true;
-    try { await store.signIn(d.get('email').trim(), d.get('pw')); }
-    catch { viewLogin('登入失敗 · 帳號或密碼錯誤'); }
+    try {
+      if (mode === 'login') await store.signIn(em, f.elements.pw.value);
+      else if (mode === 'signup') await store.signUp(em, f.elements.pw.value);
+      else { await store.resetPassword(em); viewLogin('login', '', '如果這個信箱有帳號，重設密碼信已寄出，請到信箱收信（也請檢查垃圾郵件）', em); }
+    } catch (x) {
+      viewLogin(mode, AUTH_ERR[x.code] || (mode === 'login' ? '登入失敗 · 帳號或密碼錯誤' : '操作失敗，請稍後再試'), '', em);
+    }
   };
 }
 
@@ -64,7 +90,7 @@ function viewDenied() {
   app.innerHTML = `
   <div class="login"><div class="term">
     <div class="logo big">無法<b class="bad">進入</b><small>${esc(user.email)}</small></div>
-    <div class="err">此帳號不在管理者名單</div>
+    <div class="err">此帳號不在管理者名單，請聯絡管理者將你的電子郵件加入</div>
     <button class="btn wide" id="lo">${icon('logout')} 登出</button>
   </div></div>`;
   document.getElementById('lo').onclick = () => store.signOut();
@@ -80,6 +106,7 @@ function shell(tab) {
         <a href="#/" class="${tab === 'home' ? 'on' : ''}">${icon('grid')}<span>調查</span></a>
         <a href="#/new" class="${tab === 'new' ? 'on' : ''}">${icon('plus')}<span>新增</span></a>
         <a href="#/lists" class="${tab === 'lists' ? 'on' : ''}">${icon('users')}<span>名單</span></a>
+        <a href="#/admins" class="${tab === 'admins' ? 'on' : ''}">${icon('shield')}<span>管理者</span></a>
       </nav>
       <div class="me"><span>${esc(user.email)}</span><button class="ib" id="lo" title="登出">${icon('logout')}</button></div>
     </aside>
@@ -517,6 +544,81 @@ function buildEditor(src, emails) {
 
   drawDates();
   countMem();
+}
+
+/* ---------- 管理者 ---------- */
+function viewAdmins() {
+  shell('admins');
+  let admins = null, failed = false;
+  const adminUrl = new URL('admin.html', location.href).href;
+  const invite = `Time Hunter 後台已為你開通管理權限：\n\n網址：${adminUrl}\n\n第一次使用請點「第一次使用？設定密碼」，用你的公司電子郵件設定密碼後即可登入。\n忘記密碼時，可在登入頁點「忘記密碼」自行重設。`;
+
+  main.innerHTML = `
+  <header class="ph"><div><div class="crumb">權限管理</div><h1>管理者</h1></div></header>
+  <div class="detail">
+    <div class="panel" id="al"></div>
+    <aside class="panel" style="display:grid;gap:14px">
+      <div class="ph2">新增管理者 <span id="ac"></span></div>
+      <textarea id="am" rows="8" placeholder="一行一位：姓名, email&#10;Josie, josie@company.com&#10;也可以只貼 email"></textarea>
+      <button class="btn pri" id="ab">${icon('plus')}加入管理者</button>
+      <div class="ph2" style="margin:8px 0 0">邀請說明</div>
+      <textarea id="iv" rows="7">${esc(invite)}</textarea>
+      <div class="row">
+        <button class="btn" id="ic">${icon('copy')}複製邀請說明</button>
+        <a class="btn" id="im">${icon('mail')}開啟郵件</a>
+      </div>
+    </aside>
+  </div>`;
+
+  const $ = s => main.querySelector(s);
+  const ta = $('#am');
+  const count = () => { $('#ac').textContent = U.parseAdmins(ta.value).length || ''; };
+  ta.oninput = count;
+
+  function draw() {
+    const box = $('#al');
+    if (!box) return;
+    if (failed) { box.innerHTML = '<div class="none sm">讀取失敗：請先到 Firebase 更新 Firestore 規則</div>'; return; }
+    if (!admins) { box.innerHTML = '<div class="none sm">載入中…</div>'; return; }
+    const list = [...admins].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
+    box.innerHTML = `
+    <div class="ph2">目前管理者 <span>${list.length}</span></div>
+    <div class="mx"><table>
+      <thead><tr><th>姓名</th><th>電子郵件</th><th>加入時間</th><th></th></tr></thead>
+      <tbody>${list.map(a => `<tr>
+        <td>${esc(a.name || '')}</td>
+        <td class="mono">${esc(a.id)}</td>
+        <td class="mono dim">${a.addedAt ? U.fmtDateTime(a.addedAt) : '—'}</td>
+        <td>${a.id === user.email.toLowerCase() ? '<span class="dim">（你）</span>' : `<button class="ib" data-rm="${esc(a.id)}" title="移除">${icon('trash')}</button>`}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+    box.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => {
+      if (!confirm(`移除 ${b.dataset.rm} 的管理權限？`)) return;
+      try { await store.removeAdmin(b.dataset.rm); U.toast('已移除'); } catch { U.toast('移除失敗', true); }
+    });
+    const others = list.map(a => a.id).filter(e => e !== user.email.toLowerCase());
+    $('#im').href = `mailto:${others.join(';')}?subject=${encodeURIComponent('【Time Hunter】後台管理權限開通')}&body=${encodeURIComponent($('#iv').value)}`;
+  }
+
+  $('#ab').onclick = async () => {
+    const list = U.parseAdmins(ta.value);
+    if (!list.length) return U.toast('請貼上至少一個電子郵件', true);
+    $('#ab').disabled = true;
+    try {
+      await store.addAdmins(list, user.email);
+      ta.value = ''; count();
+      U.toast(`已加入 ${list.length} 位管理者`);
+    } catch (x) {
+      console.error(x);
+      U.toast('加入失敗：請確認已更新 Firestore 規則', true);
+    }
+    $('#ab').disabled = false;
+  };
+  $('#ic').onclick = () => U.copy($('#iv').value, '已複製邀請說明');
+  $('#iv').oninput = draw;
+
+  vUnsubs.push(store.watchAdmins(a => { admins = a; failed = false; draw(); }, () => { failed = true; draw(); }));
+  draw();
 }
 
 /* ---------- 名單 ---------- */

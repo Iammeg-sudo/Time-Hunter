@@ -12,7 +12,10 @@ service cloud.firestore {
     }
 
     match /admins/{email} {
-      allow get: if request.auth != null && request.auth.token.email == email;
+      allow get: if request.auth != null && (request.auth.token.email == email || isAdmin());
+      // 管理者可在後台「管理者」頁新增／移除；不能移除自己，避免沒人能管理
+      allow list, create, update: if isAdmin();
+      allow delete: if isAdmin() && request.auth.token.email != email;
     }
 
     match /lists/{id} {

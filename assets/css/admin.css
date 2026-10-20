@@ -59,6 +59,11 @@ select { cursor: pointer; }
 .term label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; color: var(--t-d); }
 .term input { font-family: var(--mono); }
 .err { color: var(--bad); font-family: var(--mono); font-size: 12px; min-height: 1em; }
+.term .links { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.term .links a { color: var(--t-d); text-decoration: underline; text-underline-offset: 3px; }
+.term .links a:hover { color: var(--o-d); }
+.term .hint { font-size: 12px; color: var(--dim); text-align: center; }
+.term .info { font-size: 13px; color: var(--t-d); background: #eaf8f7; border-radius: var(--r); padding: 10px 12px; line-height: 1.6; }
 .demo-tag { text-align: center; font-family: var(--mono); font-size: 11px; color: var(--o-d); letter-spacing: .1em; }
 
 .logo { font-family: var(--mono); font-weight: 800; letter-spacing: .14em; font-size: 16px; display: block; color: var(--text); }

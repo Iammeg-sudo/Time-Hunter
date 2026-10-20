@@ -29,7 +29,20 @@ async function firebaseStore() {
       });
     },
     signIn: (email, pw) => A.signInWithEmailAndPassword(auth, email, pw),
+    signUp: (email, pw) => A.createUserWithEmailAndPassword(auth, email, pw),
+    resetPassword: email => A.sendPasswordResetEmail(auth, email),
     signOut: () => A.signOut(auth),
+
+    // 管理者名單：文件 ID = 小寫 email
+    watchAdmins(cb, onErr) {
+      return F.onSnapshot(F.collection(db, 'admins'), s => cb(docs(s)), e => { console.error(e); onErr?.(e); });
+    },
+    async addAdmins(list, by) {
+      const b = F.writeBatch(db);
+      for (const a of list) b.set(F.doc(db, 'admins', a.email), { name: a.name, addedBy: by, addedAt: Date.now() });
+      await b.commit();
+    },
+    removeAdmin: email => F.deleteDoc(F.doc(db, 'admins', email)),
 
     watchSurveys(since, cb) {
       const q = F.query(F.collection(db, 'surveys'), F.where('createdAt', '>=', since), F.orderBy('createdAt', 'desc'));
@@ -111,7 +124,17 @@ function demoStore() {
     demo: true,
     onAuth(cb) { const f = () => cb(authUser()); authSubs.add(f); queueMicrotask(f); return () => authSubs.delete(f); },
     signIn: async email => setAuth(email || 'demo@timehunter'),
+    signUp: async email => setAuth(email || 'demo@timehunter'),
+    resetPassword: async () => {},
     signOut: async () => setAuth(null),
+
+    watchAdmins: cb => sub(() => cb(Object.entries(data.admins ||= {}).map(([id, a]) => ({ id, ...a })))),
+    async addAdmins(list, by) {
+      data.admins ||= {};
+      for (const a of list) data.admins[a.email] = { name: a.name, addedBy: by, addedAt: Date.now() };
+      write();
+    },
+    async removeAdmin(email) { delete (data.admins ||= {})[email]; write(); },
 
     watchSurveys: (since, cb) => sub(() => cb(Object.values(data.surveys)
       .filter(s => s.createdAt >= since).sort((a, b) => b.createdAt - a.createdAt).map(clone))),
