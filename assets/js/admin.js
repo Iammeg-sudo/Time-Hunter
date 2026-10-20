@@ -209,6 +209,8 @@ function viewDetail(id) {
 
   function drawHead() {
     const closed = U.isClosed(s), forced = s.status === 'closed', expired = Date.now() >= s.deadline;
+    // 只有建立者或最高管理者可以刪除（Firestore 規則也有同樣的限制）
+    const canDel = user.isSuper || (s.createdBy || '').toLowerCase() === user.email;
     const link = U.surveyLink(s.id);
     main.querySelector('#dh').innerHTML = `
     <header class="ph">
@@ -218,6 +220,7 @@ function viewDetail(id) {
         <div class="card-m">
           ${s.location ? `<span>${icon('pin')}${esc(s.location)}</span>` : ''}
           <span>${icon('clock')}${U.fmtDateTime(s.deadline)}</span>
+          <span>${icon('users')}建立者 ${esc(s.createdBy || '—')}</span>
         </div>
       </div>
       <div class="acts">
@@ -225,16 +228,17 @@ function viewDetail(id) {
         <a class="btn" href="${esc(link)}" target="_blank" rel="noopener">${icon('ext')}前台</a>
         <a class="btn" href="#/edit/${s.id}">${icon('edit')}編輯</a>
         ${expired ? '' : `<button class="btn" id="st">${icon('power')}${forced ? '重新開放' : '提前截止'}</button>`}
-        <button class="btn bad" id="del">${icon('trash')}</button>
+        ${canDel ? `<button class="btn bad" id="del" title="刪除">${icon('trash')}</button>` : ''}
       </div>
     </header>`;
     main.querySelector('#cl').onclick = () => U.copy(link, '已複製調查連結');
     const st = main.querySelector('#st');
     if (st) st.onclick = () => store.setStatus(s.id, forced ? 'open' : 'closed');
-    main.querySelector('#del').onclick = async () => {
+    const del = main.querySelector('#del');
+    if (del) del.onclick = async () => {
       if (!confirm(`刪除「${s.title}」及所有回覆？`)) return;
-      await store.deleteSurvey(s.id);
-      location.hash = '#/';
+      try { await store.deleteSurvey(s.id); location.hash = '#/'; }
+      catch { U.toast('刪除失敗：只有建立者或最高管理者可以刪除', true); }
     };
   }
 
@@ -557,7 +561,8 @@ function viewAdmins() {
   <header class="ph"><div><div class="crumb">權限管理</div><h1>管理者</h1></div></header>
   <div class="detail">
     <div class="panel" id="al"></div>
-    <aside class="panel" style="display:grid;gap:14px">
+    ${user.isSuper ? '' : '<aside class="panel"><div class="ph2">新增管理者</div><p class="dim" style="line-height:1.7">只有<b>最高管理者</b>可以新增、移除管理者或變更身分。需要開通同事權限，請聯絡最高管理者。</p></aside>'}
+    <aside class="panel" style="display:${user.isSuper ? 'grid' : 'none'};gap:14px">
       <div class="ph2">新增管理者 <span id="ac"></span></div>
       <textarea id="am" rows="8" placeholder="一行一位：姓名, email&#10;Josie, josie@company.com&#10;也可以只貼 email"></textarea>
       <button class="btn pri" id="ab">${icon('plus')}加入管理者</button>
@@ -580,23 +585,39 @@ function viewAdmins() {
     if (!box) return;
     if (failed) { box.innerHTML = '<div class="none sm">讀取失敗：請先到 Firebase 更新 Firestore 規則</div>'; return; }
     if (!admins) { box.innerHTML = '<div class="none sm">載入中…</div>'; return; }
-    const list = [...admins].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
+    // 最高管理者排前面，其餘依加入時間
+    const list = [...admins].sort((a, b) => (b.super === true) - (a.super === true) || (a.addedAt || 0) - (b.addedAt || 0));
+    const nSuper = list.filter(a => a.super === true).length;
     box.innerHTML = `
-    <div class="ph2">目前管理者 <span>${list.length}</span></div>
+    <div class="ph2">目前管理者 <span>${list.length} 位（最高管理者 ${nSuper} 位）</span></div>
     <div class="mx"><table>
-      <thead><tr><th>姓名</th><th>電子郵件</th><th>加入時間</th><th></th></tr></thead>
-      <tbody>${list.map(a => `<tr>
-        <td>${esc(a.name || '')}</td>
-        <td class="mono">${esc(a.id)}</td>
-        <td class="mono dim">${a.addedAt ? U.fmtDateTime(a.addedAt) : '—'}</td>
-        <td>${a.id === user.email.toLowerCase() ? '<span class="dim">（你）</span>' : `<button class="ib" data-rm="${esc(a.id)}" title="移除">${icon('trash')}</button>`}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
+      <thead><tr><th>姓名</th><th>電子郵件</th><th>身分</th><th>加入時間</th><th></th></tr></thead>
+      <tbody>${list.map(a => {
+        const self = a.id === user.email, sup = a.super === true;
+        const acts = !user.isSuper ? '' : self ? '<span class="dim">（你）</span>' : `
+          <button class="btn sm" data-su="${esc(a.id)}" data-on="${sup ? '' : '1'}">${sup ? '取消最高' : '設為最高'}</button>
+          <button class="ib" data-rm="${esc(a.id)}" title="移除">${icon('trash')}</button>`;
+        return `<tr>
+          <td>${esc(a.name || '')}</td>
+          <td class="mono">${esc(a.id)}</td>
+          <td>${sup ? '<span class="tag live">最高管理者</span>' : '<span class="tag">管理者</span>'}</td>
+          <td class="mono dim">${a.addedAt ? U.fmtDateTime(a.addedAt) : '—'}</td>
+          <td style="white-space:nowrap">${acts}${!user.isSuper && self ? '<span class="dim">（你）</span>' : ''}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>
+    <p class="dim" style="margin-top:12px;font-size:13px">最高管理者可刪除任何人的調查、管理名單；一般管理者只能刪除自己建立的調查。</p>`;
     box.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => {
       if (!confirm(`移除 ${b.dataset.rm} 的管理權限？`)) return;
-      try { await store.removeAdmin(b.dataset.rm); U.toast('已移除'); } catch { U.toast('移除失敗', true); }
+      try { await store.removeAdmin(b.dataset.rm); U.toast('已移除'); } catch { U.toast('移除失敗：只有最高管理者可以移除', true); }
     });
-    const others = list.map(a => a.id).filter(e => e !== user.email.toLowerCase());
+    box.querySelectorAll('[data-su]').forEach(b => b.onclick = async () => {
+      const on = !!b.dataset.on;
+      if (!confirm(on ? `把 ${b.dataset.su} 設為最高管理者？` : `取消 ${b.dataset.su} 的最高管理者身分？`)) return;
+      try { await store.setSuper(b.dataset.su, on); U.toast(on ? '已設為最高管理者' : '已取消最高管理者'); }
+      catch { U.toast('變更失敗：只有最高管理者可以變更', true); }
+    });
+    const others = list.map(a => a.id).filter(e => e !== user.email);
     $('#im').href = `mailto:${others.join(';')}?subject=${encodeURIComponent('【Time Hunter】後台管理權限開通')}&body=${encodeURIComponent($('#iv').value)}`;
   }
 

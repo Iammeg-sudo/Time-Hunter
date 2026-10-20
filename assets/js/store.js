@@ -23,9 +23,13 @@ async function firebaseStore() {
     onAuth(cb) {
       return A.onAuthStateChanged(auth, async u => {
         if (!u) return cb(null);
-        let isAdmin = false;
-        try { isAdmin = (await F.getDoc(F.doc(db, 'admins', u.email))).exists(); } catch { /* 無權限 */ }
-        cb({ email: u.email, isAdmin });
+        let isAdmin = false, isSuper = false;
+        try {
+          const a = await F.getDoc(F.doc(db, 'admins', u.email.toLowerCase()));
+          isAdmin = a.exists();
+          isSuper = isAdmin && a.data().super === true;
+        } catch { /* 無權限 */ }
+        cb({ email: u.email.toLowerCase(), isAdmin, isSuper });
       });
     },
     signIn: (email, pw) => A.signInWithEmailAndPassword(auth, email, pw),
@@ -39,10 +43,12 @@ async function firebaseStore() {
     },
     async addAdmins(list, by) {
       const b = F.writeBatch(db);
-      for (const a of list) b.set(F.doc(db, 'admins', a.email), { name: a.name, addedBy: by, addedAt: Date.now() });
+      // merge：重複加入時保留原本的最高管理者身分
+      for (const a of list) b.set(F.doc(db, 'admins', a.email), { name: a.name, addedBy: by, addedAt: Date.now() }, { merge: true });
       await b.commit();
     },
     removeAdmin: email => F.deleteDoc(F.doc(db, 'admins', email)),
+    setSuper: (email, on) => F.updateDoc(F.doc(db, 'admins', email), { super: on }),
 
     watchSurveys(since, cb) {
       const q = F.query(F.collection(db, 'surveys'), F.where('createdAt', '>=', since), F.orderBy('createdAt', 'desc'));
@@ -104,7 +110,7 @@ function demoStore() {
   const write = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch { /* 無法儲存 */ } emit(); };
   const sub = fn => { subs.add(fn); queueMicrotask(fn); return () => subs.delete(fn); };
   const authUser = () => {
-    try { const e = localStorage.getItem(AUTH); return e ? { email: e, isAdmin: true } : null; } catch { return null; }
+    try { const e = localStorage.getItem(AUTH); return e ? { email: e.toLowerCase(), isAdmin: true, isSuper: true } : null; } catch { return null; }
   };
   const setAuth = v => {
     try { v ? localStorage.setItem(AUTH, v) : localStorage.removeItem(AUTH); } catch { /* 無法儲存 */ }
@@ -131,10 +137,11 @@ function demoStore() {
     watchAdmins: cb => sub(() => cb(Object.entries(data.admins ||= {}).map(([id, a]) => ({ id, ...a })))),
     async addAdmins(list, by) {
       data.admins ||= {};
-      for (const a of list) data.admins[a.email] = { name: a.name, addedBy: by, addedAt: Date.now() };
+      for (const a of list) data.admins[a.email] = { ...data.admins[a.email], name: a.name, addedBy: by, addedAt: Date.now() };
       write();
     },
     async removeAdmin(email) { delete (data.admins ||= {})[email]; write(); },
+    async setSuper(email, on) { (data.admins ||= {})[email].super = on; write(); },
 
     watchSurveys: (since, cb) => sub(() => cb(Object.values(data.surveys)
       .filter(s => s.createdAt >= since).sort((a, b) => b.createdAt - a.createdAt).map(clone))),

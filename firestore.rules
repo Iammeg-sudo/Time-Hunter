@@ -2,20 +2,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 管理者：在 admins 集合中建立「文件 ID = 管理者 email（小寫）」的文件
+    // 管理者：admins 集合中「文件 ID = 管理者 email（小寫）」的文件
+    // 最高管理者：該文件多一個欄位 super = true
+    function me() { return request.auth.token.email.lower(); }
     function isAdmin() {
       return request.auth != null && request.auth.token.email != null &&
-        exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+        exists(/databases/$(database)/documents/admins/$(me()));
+    }
+    function isSuper() {
+      return isAdmin() && get(/databases/$(database)/documents/admins/$(me())).data.get('super', false) == true;
     }
     function survey(sid) {
       return get(/databases/$(database)/documents/surveys/$(sid)).data;
     }
+    // 建立者或最高管理者才能刪除調查
+    function canDelete(sid) {
+      return isAdmin() && (survey(sid).get('createdBy', '') == me() || isSuper());
+    }
 
     match /admins/{email} {
-      allow get: if request.auth != null && (request.auth.token.email == email || isAdmin());
-      // 管理者可在後台「管理者」頁新增／移除；不能移除自己，避免沒人能管理
-      allow list, create, update: if isAdmin();
-      allow delete: if isAdmin() && request.auth.token.email != email;
+      allow get: if request.auth != null && (me() == email || isAdmin());
+      allow list: if isAdmin();
+      // 只有最高管理者能管理名單；不能移除自己、也不能取消自己的最高管理者身分
+      allow create: if isSuper();
+      allow update: if isSuper() && (email != me() || request.resource.data.get('super', false) == true);
+      allow delete: if isSuper() && email != me();
     }
 
     match /lists/{id} {
@@ -23,16 +34,20 @@ service cloud.firestore {
     }
 
     match /surveys/{sid} {
-      allow get: if true;               // 有連結的人可看該場調查
-      allow list, write: if isAdmin();  // 只有管理者可列出全部 / 新增 / 修改
+      allow get: if true;                 // 有連結的人可看該場調查
+      allow list: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.createdBy == me();
+      allow update: if isAdmin() && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '');  // 建立者不能被改掉
+      allow delete: if isAdmin() && (resource.data.get('createdBy', '') == me() || isSuper());
 
-      match /private/{doc} {            // 與會者 email 只有管理者看得到
-        allow read, write: if isAdmin();
+      match /private/{doc} {              // 與會者 email 只有管理者看得到
+        allow read, create, update: if isAdmin();
+        allow delete: if canDelete(sid);
       }
 
       match /responses/{pid} {
         allow read: if true;
-        allow delete: if isAdmin();
+        allow delete: if canDelete(sid);
         allow create, update: if isAdmin() || (
           survey(sid).status == 'open'
           && request.time.toMillis() < survey(sid).deadline
