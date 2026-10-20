@@ -199,7 +199,9 @@ a.card:hover { border-color: var(--t); transform: translateY(-2px); box-shadow: 
 .share input, .pick input { width: auto; accent-color: var(--t); }
 .pick { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; max-height: 180px; overflow: auto; padding: 10px 14px; margin-left: 24px; background: var(--bg2); border: 1px solid var(--line2); border-radius: var(--r); }
 .modal { position: fixed; inset: 0; background: rgba(36, 57, 61, .35); backdrop-filter: blur(4px); display: grid; place-items: center; padding: 16px; z-index: 30; }
-.dlg { width: min(520px, 100%); display: grid; gap: 14px; margin: 0; box-shadow: 0 30px 80px rgba(36, 57, 61, .25); border-top: 3px solid var(--t); }
+.dlg { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; display: grid; gap: 14px; margin: 0; box-shadow: 0 30px 80px rgba(36, 57, 61, .25); border-top: 3px solid var(--t); }
+/* 儲存列固定在視窗底部，內容再長都按得到 */
+.dlg .row.end { position: sticky; bottom: -16px; background: var(--panel); padding: 12px 0 16px; margin-bottom: -16px; border-top: 1px solid var(--line); }
 
 .boot { position: fixed; top: 50%; left: 50%; width: 32px; height: 32px; margin: -16px; border: 3px solid var(--aq); border-top-color: var(--t); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

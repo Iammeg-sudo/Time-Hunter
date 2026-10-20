@@ -690,7 +690,7 @@ function viewLists() {
       <div class="ph2">${editing.id ? '編輯名單' : '新增名單'}</div>
       <div class="f"><label>名稱</label><input name="name" required value="${esc(editing.name)}"></div>
       <div class="f"><label>成員 <em id="lc"></em></label>
-        <textarea name="mem" rows="8" placeholder="王小明, wang@company.com">${esc(U.membersToText(editing.members))}</textarea></div>
+        <textarea name="mem" rows="6" placeholder="王小明, wang@company.com">${esc(U.membersToText(editing.members))}</textarea></div>
       <div class="f"><label>分享設定</label>
         <div class="share">
           <label><input type="radio" name="sm" value="none" ${mode === 'none' ? 'checked' : ''}> 不分享（只有我和最高管理者看得到）</label>
