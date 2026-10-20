@@ -1,5 +1,6 @@
-import { store } from './store.js';
-import * as U from './utils.js';
+// 版本號：每次更新檔案時一起改，讓瀏覽器抓新版而不是用舊的暫存
+import { store } from './store.js?v=20261020';
+import * as U from './utils.js?v=20261020';
 
 const { esc, icon } = U;
 const app = document.getElementById('app');

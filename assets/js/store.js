@@ -1,6 +1,6 @@
 // 資料層：有 Firebase 設定時使用 Firestore（即時同步），否則使用本機 DEMO 資料
-import { firebaseConfig } from './config.js';
-import { uid, pad, isClosed } from './utils.js';
+import { firebaseConfig } from './config.js?v=20261020';
+import { uid, pad, isClosed } from './utils.js?v=20261020';
 
 const DEMO = !firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith('YOUR');
 export const store = DEMO ? demoStore() : await firebaseStore();
