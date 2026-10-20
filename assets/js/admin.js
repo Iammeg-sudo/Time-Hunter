@@ -215,7 +215,7 @@ function viewDetail(id) {
     main.querySelector('#dh').innerHTML = `
     <header class="ph">
       <div>
-        <div class="crumb"><a href="#/">總覽</a> / ${esc(s.id)}</div>
+        <div class="crumb"><a href="#/">總覽</a> / 調查詳情</div>
         <h1>${esc(s.title)} <span class="tag ${closed ? '' : 'live'}">${closed ? '已截止' : '進行中'}</span></h1>
         <div class="card-m">
           ${s.location ? `<span>${icon('pin')}${esc(s.location)}</span>` : ''}
