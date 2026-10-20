@@ -1,24 +1,30 @@
 // 版本號：每次更新檔案時一起改，讓瀏覽器抓新版而不是用舊的暫存
-import { store } from './store.js?v=20261020';
-import * as U from './utils.js?v=20261020';
+import { store } from './store.js?v=20261020b';
+import * as U from './utils.js?v=20261020b';
 
 const { esc, icon } = U;
 const app = document.getElementById('app');
 const YEAR = 365 * 864e5;
 
-let user, surveys = [], lists = [], loaded = false;
+let user, surveys = [], lists = [], loaded = false, adminNames = {};
 let gUnsubs = [], vUnsubs = [], refresh = null, main = null;
 
 store.onAuth(u => {
   gUnsubs.forEach(f => f());
-  gUnsubs = []; surveys = []; lists = []; loaded = false;
+  gUnsubs = []; surveys = []; lists = []; loaded = false; adminNames = {};
   user = u;
   if (u?.isAdmin) {
-    gUnsubs.push(store.watchSurveys(Date.now() - YEAR, s => { surveys = s; loaded = true; refresh?.(); }));
+    gUnsubs.push(store.watchSurveys(Date.now() - YEAR, s => { surveys = s; loaded = true; refresh?.(); }, u));
     gUnsubs.push(store.watchLists(l => { lists = l; refresh?.(); }, u));
+    gUnsubs.push(store.watchAdmins(a => { adminNames = Object.fromEntries(a.map(x => [x.id, x.name])); refresh?.(); }, () => {}));
   }
   route();
 });
+
+// 建立者顯示名稱：管理者名單裡的姓名，沒有就用 email
+const whoName = email => !email ? '—' : email === user.email ? `${adminNames[email] || email}（我）` : adminNames[email] || email;
+// 只有建立者或最高管理者可以檢視／管理一場調查
+const canManage = s => user.isSuper || (s.createdBy || '').toLowerCase() === user.email;
 addEventListener('hashchange', route);
 
 function route() {
@@ -128,7 +134,7 @@ function viewHome() {
 
   main.innerHTML = `
   <header class="ph">
-    <div><div class="crumb">總覽</div><h1>會議調查</h1></div>
+    <div><div class="crumb">總覽 · ${user.isSuper ? '所有管理者的調查（最高管理者）' : '只顯示我建立的調查'}</div><h1>會議調查</h1></div>
     <a class="btn pri" href="#/new">${icon('plus')}新增調查</a>
   </header>
   <div class="kpis" id="kpis"></div>
@@ -158,7 +164,7 @@ function viewHome() {
     const q = query.trim().toLowerCase();
     const list = surveys.filter(s =>
       (filter === 'all' || (filter === 'live') === !U.isClosed(s)) &&
-      (!q || (s.title + (s.location || '')).toLowerCase().includes(q)));
+      (!q || (s.title + (s.location || '') + whoName(s.createdBy)).toLowerCase().includes(q)));
     main.querySelector('#grid').innerHTML = list.length ? list.map(s => card(s, resp[s.id])).join('')
       : `<div class="none">${loaded ? '沒有資料' : '載入中…'}</div>`;
   }
@@ -178,6 +184,7 @@ function viewHome() {
         <span>${icon('users')}${total}</span><span>${icon('cal')}${s.slots.length}</span>
       </div>
       ${n === null ? '' : `<div class="prog"><span class="rb"><i style="width:${total ? n / total * 100 : 0}%"></i></span>${n}/${total}</div>`}
+      <div class="owner">${icon('edit')}建立者 <b>${esc(whoName(s.createdBy))}</b></div>
     </a>`;
   }
 
@@ -205,13 +212,14 @@ function viewDetail(id) {
   function draw() {
     if (s === undefined) return;
     if (s === null) { main.innerHTML = `<div class="none">找不到此調查</div>`; return; }
+    if (!canManage(s)) { main.innerHTML = `<div class="none">你沒有這場調查的權限（只有建立者與最高管理者可以檢視）</div>`; return; }
     drawHead(); drawLive(); drawMail();
   }
 
   function drawHead() {
     const closed = U.isClosed(s), forced = s.status === 'closed', expired = Date.now() >= s.deadline;
     // 只有建立者或最高管理者可以刪除（Firestore 規則也有同樣的限制）
-    const canDel = user.isSuper || (s.createdBy || '').toLowerCase() === user.email;
+    const canDel = canManage(s);
     const link = U.surveyLink(s.id);
     main.querySelector('#dh').innerHTML = `
     <header class="ph">
@@ -221,7 +229,7 @@ function viewDetail(id) {
         <div class="card-m">
           ${s.location ? `<span>${icon('pin')}${esc(s.location)}</span>` : ''}
           <span>${icon('clock')}${U.fmtDateTime(s.deadline)}</span>
-          <span>${icon('users')}建立者 ${esc(s.createdBy || '—')}</span>
+          <span>${icon('edit')}建立者 ${esc(whoName(s.createdBy))}</span>
         </div>
       </div>
       <div class="acts">
@@ -387,6 +395,7 @@ function viewEditor(id) {
     if (id) {
       [src, emails] = await Promise.all([store.getSurvey(id), store.getContacts(id)]);
       if (!src) { main.innerHTML = '<div class="none">找不到此調查</div>'; return; }
+      if (!canManage(src)) { main.innerHTML = '<div class="none">你沒有這場調查的權限（只有建立者與最高管理者可以編輯）</div>'; return; }
     }
     buildEditor(src, emails);
   })();

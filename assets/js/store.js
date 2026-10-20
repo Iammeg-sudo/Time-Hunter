@@ -1,6 +1,6 @@
 // 資料層：有 Firebase 設定時使用 Firestore（即時同步），否則使用本機 DEMO 資料
-import { firebaseConfig } from './config.js?v=20261020';
-import { uid, pad, isClosed } from './utils.js?v=20261020';
+import { firebaseConfig } from './config.js?v=20261020b';
+import { uid, pad, isClosed } from './utils.js?v=20261020b';
 
 const DEMO = !firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith('YOUR');
 export const store = DEMO ? demoStore() : await firebaseStore();
@@ -50,9 +50,15 @@ async function firebaseStore() {
     removeAdmin: email => F.deleteDoc(F.doc(db, 'admins', email)),
     setSuper: (email, on) => F.updateDoc(F.doc(db, 'admins', email), { super: on }),
 
-    watchSurveys(since, cb) {
-      const q = F.query(F.collection(db, 'surveys'), F.where('createdAt', '>=', since), F.orderBy('createdAt', 'desc'));
-      return F.onSnapshot(q, s => cb(docs(s)), e => console.error(e));
+    // 最高管理者看全部；一般管理者只讀自己建立的（在瀏覽器端篩選日期，免建複合索引）
+    watchSurveys(since, cb, me) {
+      const col = F.collection(db, 'surveys');
+      if (me.isSuper) {
+        const q = F.query(col, F.where('createdAt', '>=', since), F.orderBy('createdAt', 'desc'));
+        return F.onSnapshot(q, s => cb(docs(s)), e => console.error(e));
+      }
+      const q = F.query(col, F.where('createdBy', '==', me.email));
+      return F.onSnapshot(q, s => cb(docs(s).filter(x => x.createdAt >= since).sort((a, b) => b.createdAt - a.createdAt)), e => console.error(e));
     },
     watchSurvey(id, cb) {
       return F.onSnapshot(F.doc(db, 'surveys', id), d => cb(d.exists() ? { id: d.id, ...d.data() } : null), () => cb(null));
@@ -126,7 +132,11 @@ function demoStore() {
   const write = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch { /* 無法儲存 */ } emit(); };
   const sub = fn => { subs.add(fn); queueMicrotask(fn); return () => subs.delete(fn); };
   const authUser = () => {
-    try { const e = localStorage.getItem(AUTH); return e ? { email: e.toLowerCase(), isAdmin: true, isSuper: true } : null; } catch { return null; }
+    try {
+      const e = localStorage.getItem(AUTH)?.toLowerCase();
+      // 示範模式：名單裡標記 super:false 的人視為一般管理者，其餘預設最高管理者
+      return e ? { email: e, isAdmin: true, isSuper: data?.admins?.[e]?.super !== false } : null;
+    } catch { return null; }
   };
   const setAuth = v => {
     try { v ? localStorage.setItem(AUTH, v) : localStorage.removeItem(AUTH); } catch { /* 無法儲存 */ }
@@ -159,8 +169,9 @@ function demoStore() {
     async removeAdmin(email) { delete (data.admins ||= {})[email]; write(); },
     async setSuper(email, on) { (data.admins ||= {})[email].super = on; write(); },
 
-    watchSurveys: (since, cb) => sub(() => cb(Object.values(data.surveys)
-      .filter(s => s.createdAt >= since).sort((a, b) => b.createdAt - a.createdAt).map(clone))),
+    watchSurveys: (since, cb, me) => sub(() => cb(Object.values(data.surveys)
+      .filter(s => s.createdAt >= since && (me.isSuper || s.createdBy === me.email))
+      .sort((a, b) => b.createdAt - a.createdAt).map(clone))),
     watchSurvey: (id, cb) => sub(() => cb(data.surveys[id] ? clone(data.surveys[id]) : null)),
     getSurvey: async id => data.surveys[id] ? clone(data.surveys[id]) : null,
     getContacts: async id => clone(data.contacts[id] || {}),

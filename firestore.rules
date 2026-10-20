@@ -15,8 +15,8 @@ service cloud.firestore {
     function survey(sid) {
       return get(/databases/$(database)/documents/surveys/$(sid)).data;
     }
-    // 建立者或最高管理者才能刪除調查
-    function canDelete(sid) {
+    // 建立者或最高管理者才能管理（檢視名單 email、修改、刪除）一場調查
+    function canManage(sid) {
       return isAdmin() && (survey(sid).get('createdBy', '') == me() || isSuper());
     }
 
@@ -43,21 +43,22 @@ service cloud.firestore {
     }
 
     match /surveys/{sid} {
-      allow get: if true;                 // 有連結的人可看該場調查
-      allow list: if isAdmin();
+      allow get: if true;                 // 有連結的人可看該場調查（前台填寫用）
+      // 總覽：一般管理者只能列出自己建立的；最高管理者可列出全部
+      allow list: if isSuper() || (isAdmin() && resource.data.createdBy == me());
       allow create: if isAdmin() && request.resource.data.createdBy == me();
-      allow update: if isAdmin() && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '');  // 建立者不能被改掉
+      allow update: if isAdmin() && (resource.data.get('createdBy', '') == me() || isSuper())
+        && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '');  // 建立者不能被改掉
       allow delete: if isAdmin() && (resource.data.get('createdBy', '') == me() || isSuper());
 
-      match /private/{doc} {              // 與會者 email 只有管理者看得到
-        allow read, create, update: if isAdmin();
-        allow delete: if canDelete(sid);
+      match /private/{doc} {              // 與會者 email 只有建立者與最高管理者看得到
+        allow read, write: if canManage(sid);
       }
 
       match /responses/{pid} {
         allow read: if true;
-        allow delete: if canDelete(sid);
-        allow create, update: if isAdmin() || (
+        allow delete: if canManage(sid);
+        allow create, update: if canManage(sid) || (
           survey(sid).status == 'open'
           && request.time.toMillis() < survey(sid).deadline
           && pid in survey(sid).pids

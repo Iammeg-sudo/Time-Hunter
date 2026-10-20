@@ -1,5 +1,5 @@
-import { store } from './store.js?v=20261020';
-import { esc, icon, fmtDate, parseDate, slotLabel, sortSlots, groupByDate, tally, countdown, pad, isClosed, toast, WEEK } from './utils.js?v=20261020';
+import { store } from './store.js?v=20261020b';
+import { esc, icon, fmtDate, parseDate, slotLabel, sortSlots, groupByDate, tally, countdown, pad, isClosed, toast, WEEK } from './utils.js?v=20261020b';
 
 const app = document.getElementById('app');
 const sid = new URLSearchParams(location.search).get('s');
